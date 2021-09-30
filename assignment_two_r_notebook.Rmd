@@ -1,0 +1,4133 @@
+---
+title: "ISM Honours  Information and Knowledge in Organisations Data Analysis Assignment 2: Data Collection and Text Mining"
+author: "Christian Muller & Gilliam van der Merwe"
+output: 
+  html_document
+---
+
+```{r message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+# Packages loaded for use in this report
+library(tinytex)
+library(ggplot2)
+library(lubridate)
+library(rtweet)
+library(dplyr)
+library(tidyverse)
+library(tidytext)
+library(tm)
+library(topicmodels)
+library(stm)
+library(devtools)
+library(textnets)
+library(httpuv)
+library(tidyr)
+library(data.table)
+library(ggthemes)
+library(stringr)
+library(here)
+library(htmlwidgets)
+library(plotly)
+library(twitteR)
+library(NLP)
+library(RColorBrewer)
+library(wordcloud)
+library(httr)
+library(reshape2)
+library(exploratory)
+library(sentimentr)
+library(forcats)
+library(udpipe)
+library(ldatuning)
+library(quanteda)
+library(vader)
+```
+
+# Background Information and Report Outline:
+This is a professional data analysis report documenting the Coronavirus, also known as Covid-19, in relation to its spread in South Africa within a timeframe of 6 months. The aim of this report is to showcase insights gathered through the acquisition and processing of tweets from applicable media agencies, facilitated by the social media platform Twitter. The result, will reflect a body of information structured in a manner reflecting that of:
+
+1) Background Information and Introduction
+
+2) Data acquisition and Reasoning: a) data read ins
+                                   b) and data cleaning with pre-processing.
+                                   
+3) Report Results consisting of a) individual data source justification and plot descriptions 
+                                b) with further implementation of various text analysis tools.
+           
+A total of ten media sources were selected initially. Each undergoing a mixture of analysis using a variety of data/text analysis tools and means of visualisation. The information displayed were gathered and formulated through consulting the latest 3200 tweets of the official media agency Twitter accounts described below. In processing these tweets, six introductory insights were chosen to express the information gathered namely, Frequency of Tweets, Most Liked Tweets, Top Hashtags, Most Frequently Shared Tweets, Top Mentions and Top words. This process, using these predetermined six insights will be repeated but within the context of all ten media sources.
+
+It is imperative to note, that after careful consideration it was decided upon to only use six media sources for further analysis. This decision was made based on the results cultivated through the six insights presented above. These media sources are Bhekisisa, NICD, Health24, HealthZA, News24 and eNCA.The author -based text network described later in this report uses all 10 media accounts, but other than that, all other analysis tools 
+are limited to using only the chosen six media accounts.
+
+
+
+## South African Twitter's Trending Hashtags
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+# Commented out code sections  are there because they  were utilized and then commented out, so as to preserve data integrity and the timeliness of the analyses.
+
+#get tweets
+
+# sa_trends <- 
+#   get_trends("south africa")
+# 
+# saveRDS(sa_trends, file = "sa_trends.rds")
+
+sa_trends <- readRDS("backup_tweets/sa_trends.rds")
+
+#select
+top_sa_trends <- 
+  sa_trends%>% 
+arrange(-tweet_volume) %>%
+top_n(10, tweet_volume) %>% 
+select(trend, tweet_volume)
+
+#Plot
+ggplot(top_sa_trends, aes(x = reorder(trend, tweet_volume),
+                          y = tweet_volume )) +
+  geom_col(fill = "#00ADB5") +
+  xlab("Hashtags") +
+  ylab("Volume of Tweets") +
+  coord_flip()+
+  theme_hc()+
+  ggtitle("South Africa's Trending Hashtags")+
+  labs(caption = "Updated: July 2021")
+```
+
+At present, there is no trending hashtag that directly pertains to the COVID-19 pandemic, rather instead most hashtags pertain to the political and social happening in Gauteng and KwaZulu-Natal due to Jacob Zuma's arrest. Hashtags that can indirectly be attributed to the pandemic include "hunger" and "poverty" due to the economic impact of the pandemic and lockdown regulations.
+
+# How and where data is collected:
+In acquiring the needed tweets with meta-data, Twitter API V1 was utilised. The resulting data frames undergo processing towards the desired output.
+
+The data used in this report was acquired from a variety of news media Twitter accounts, as well as Covid-19 vaccination data from the Mediahack group. The Twitter account data was acquired with the use of the Twitter API via the ```twitterR``` and ```rtweet``` packages in R. The accounts’ tweet data was first obtained using the ```get_timeline()``` function, thereafter the data was saved by using the ```saveRDS()``` function. The data was saved so that while the analyses were conducted, the changes in Twitter data would not interfere with the report. The saved account tweet data was then read in and stored by using the ```readRDS()``` function. 
+
+## Reading in and saving Twitter account timelines
+
+```{r GET TIMELINE, message=FALSE, warning=FALSE, paged.print=FALSE, echo=FALSE}
+# <- 
+#get_timeline("@Bhekisisa_MG", n = 3200, include_rts = F,
+#                retryonratelimit = TRUE)
+
+bhekisisa_tweets <- readRDS("backup_tweets/bhekisisa_tweets.rds")
+
+# saveRDS(bhekisisa_tweets, file = "bhekisisa_tweets.rds")
+# 
+#nicd_tweets <- 
+#  get_timeline("@nicd_sa", n = 3200, include_rts = F)
+# 
+#saveRDS(nicd_tweets, file = "nicd_tweets.rds")
+
+nicd_tweets <- readRDS("backup_tweets/nicd_tweets.rds")
+
+#healthza_tweets <- 
+#   get_timeline("@HealthZA", n = 3200, include_rts = F)
+# 
+# saveRDS(healthza_tweets, file = "healthza_tweets.rds")
+
+healthza_tweets <- readRDS("backup_tweets/healthza_tweets.rds")
+ 
+#ewnreporter_tweets <-
+#  get_timeline("@ewnreporter", n = 3200, include_rts = F)
+# 
+# saveRDS(ewnreporter_tweets, file = "ewnreporter_tweets.rds")
+
+ewnreporter_tweets <- readRDS("backup_tweets/ewnreporter_tweets.rds")
+
+##news24_tweets <- 
+#   get_timeline("@News24", n = 3200, include_rts = F)
+# 
+# saveRDS(news24_tweets, file = "news24_tweets.rds")
+
+news24_tweets <- readRDS("backup_tweets/news24_tweets.rds")
+
+#SAgovnews_timeline_df <-
+#  get_timeline("@SAgovnews", n = 3200, include_rts = F)
+# 
+# saveRDS(SAgovnews_timeline_df, file = "SAgovnews_timeline_df.rds")
+
+SAgovnews_timeline_df <- readRDS("backup_tweets/SAgovnews_timeline_df.rds")
+
+ #health24_timeline_df <- 
+ #  get_timeline("@Health24com", n = 3200, include_rts = F)
+# 
+# saveRDS(health24_timeline_df, file = "health24_timeline_df.rds")
+
+health24_timeline_df <- readRDS("backup_tweets/health24_timeline_df.rds")
+
+ #GovernmentZA_timeline_df <-
+ #  get_timeline("@GovernmentZA", n = 3200, include_rts = F)
+# 
+# saveRDS(GovernmentZA_timeline_df, file = "GovernmentZA_timeline_df.rds")
+
+GovernmentZA_timeline_df <- readRDS("backup_tweets/GovernmentZA_timeline_df.rds")
+
+#sabc_news_timeline_df <- 
+#   get_timeline("@SABCNews", n = 3200, include_rts = F)
+# 
+# saveRDS(sabc_news_timeline_df, file = "sabc_news_timeline_df.rds")
+
+sabc_news_timeline_df <- readRDS("backup_tweets/sabc_news_timeline_df.rds")
+
+#enca_timeline_df <- 
+#  get_timeline("@eNCA", n = 3200, include_rts = F)
+# 
+# saveRDS(enca_timeline_df, file = "enca_timeline_df.rds")
+
+enca_timeline_df <- readRDS("backup_tweets/enca_timeline_df.rds")
+
+vaccinations <- 
+  read.csv("http://api.mediahack.co.za/adh/sa-vaccinations.csv")
+
+# joint_timelines <-
+#   get_timeline(c("@Bhekisisa_MG", "@nicd_sa", "@eNCA", "@HealthZA", "@News24", "@Health24com"), n = 3200)
+# 
+# saveRDS(joint_timelines, file = "joint_timelines.rds")
+
+joint_timelines <- readRDS("backup_tweets/joint_timelines.rds")
+
+```
+
+## Cleaning and Pre-processing Data:
+
+Each media source's tweet data was pre-processed and cleaned. This was done by first creating a corpus of the tweet data, then un-nesting the tokens of the text variable, thereafter we removed stop words, punctuation, and other unnecessary words such as "https, http, rt, t.co and amp". The cleaned data was then filtered and sorted depending on the type of analysis we conducted.
+
+```{r joint_timelines_cleaning, results='hide', echo=FALSE}
+# Additional cleaning
+
+gsub("http\\S+|http|rt|t.co|amp", "", joint_timelines$text)
+
+# Removing unnecessary characters
+
+joint_timelines$text = str_remove_all(joint_timelines$text, "\\s?(f|ht)(tp)(s?)(://)([^\\.])[\\.|/](\\S)")
+```
+
+
+```{r BHEKISISA CLEANING, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide', echo=FALSE}
+#Bhekisisa cleaning
+
+# Creation of corpus
+
+bhekisisa_corpus <- 
+  Corpus(VectorSource(as.vector(bhekisisa_tweets$text)))
+
+# un-nesting tokens
+
+tidy_bhekisisa_tweets <- 
+  bhekisisa_tweets %>%
+    select(created_at,text) %>%
+    unnest_tokens("word", text)
+
+# Reordering tweet words
+
+tidy_bhekisisa_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+# Removing stop words
+
+bhekisisa_corpus <- 
+  tm_map(bhekisisa_corpus, removeWords, stopwords("english"))
+
+# Reordering tweet words
+
+tidy_bhekisisa_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+# Removing punctuation
+
+bhekisisa_corpus <- 
+  tm_map(bhekisisa_corpus, content_transformer(removePunctuation))
+
+# Reordering tweet words
+
+tidy_bhekisisa_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+data("stop_words")
+
+#MOST FREQUENTLY SHARED LINK
+bhekisisa_shared_links <- 
+  bhekisisa_tweets %>% 
+  filter(!is.na(urls_expanded_url)) %>% 
+  count(urls_expanded_url, sort = TRUE) %>% 
+  top_n(5)
+
+#Most frequent words
+top_bhekisisa_words<-
+   tidy_bhekisisa_tweets %>%
+      anti_join(stop_words) %>%
+        filter(!(word=="https"|
+                 word=="rt"|
+                 word=="t.co"|
+                 word=="amp")) %>%
+            count(word) %>%
+              arrange(desc(n))
+
+#MOST LIKED TWEET
+bhekisisa_liked_tweets <-
+  bhekisisa_tweets%>% 
+  arrange(-favorite_count) %>%
+  top_n(5, favorite_count) %>% 
+  select(created_at, screen_name, text, favorite_count)
+
+#most Liked Tweets cleaning
+bhek_most_liked_tweets <-
+  bhekisisa_liked_tweets %>%
+  select("text")
+
+Bhek_like_val <- 
+  rbind(c('1st Most Liked Tweet', 
+          '2nd Most Liked Tweet',
+          '3rd Most Liked Tweet', 
+          '4th Most Liked Tweet', 
+          '5th Most Liked Tweet'), 
+        c(bhek_most_liked_tweets$text[1],
+          bhek_most_liked_tweets$text[2],
+          bhek_most_liked_tweets$text[3],
+          bhek_most_liked_tweets$text[4],
+          bhek_most_liked_tweets$text[5]))
+
+#MOST FREQUENTLY SHARED TWEET
+bhekisisa_shared_tweets <- 
+  bhekisisa_tweets %>% 
+  arrange(-retweet_count) %>%
+  slice(1) %>% 
+  select(created_at, screen_name, text, retweet_count)
+
+# shared tweet cleaning
+bhek_most_shared_tweet <- 
+  bhekisisa_shared_tweets %>%
+  select("text")
+
+bhek_share_val <- 
+  rbind(c('Most Shared Tweet of Bhekisisa'),
+        c(bhek_most_shared_tweet$text))
+
+
+#TOP HASHTAG
+bhekisisa_df_hashtags <- 
+  bhekisisa_tweets %>% 
+  unnest_tokens(hashtag, text, "tweets", to_lower = FALSE) %>%
+  filter(str_detect(hashtag, "^#")) %>%
+  count(hashtag, sort = TRUE) %>%
+  top_n(10)
+
+#TOP MENTIONS
+bhekisisa_mentions <- 
+  bhekisisa_tweets %>% 
+  unnest_tokens(mentions, text, "tweets", to_lower = FALSE) %>%
+  filter(str_detect(mentions, "^@")) %>% 
+  count(mentions, sort = TRUE) %>%
+  top_n(10)
+
+#TOP WORDS
+bhekisisa_words <- 
+  bhekisisa_tweets %>%
+  mutate(text = str_remove_all(text, "&amp;|&lt;|&gt;"),
+  text = str_remove_all(text, "\\s?(f|ht)(tp)(s?)(://)([^\\.])[\\.|/](\\S)"),
+  text = str_remove_all(text, "[^\x01-\x7F]")) %>% 
+  unnest_tokens(word, text, token = "tweets") %>%
+  filter(!word %in% stop_words$word,
+  !word %in% str_remove_all(stop_words$word, "'"),
+  str_detect(word, "[a-z]"),
+  !str_detect(word, "^#"), 
+  !str_detect(word, "@\\S+")) %>%
+  count(word, sort = TRUE) %>%
+  top_n(10)
+
+```
+
+```{r NICD CLEANING, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide', echo=FALSE}
+
+# Same cleaning process as described before.
+
+nicd_corpus <- 
+  Corpus(VectorSource(as.vector(nicd_tweets$text)))
+
+tidy_nicd_tweets <- 
+  nicd_tweets %>%
+    select(created_at,text) %>%
+    unnest_tokens("word", text)
+
+tidy_nicd_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+nicd_corpus <- 
+  tm_map(nicd_corpus, removeWords, stopwords("english"))
+
+tidy_nicd_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+nicd_corpus <- 
+  tm_map(nicd_corpus, content_transformer(removePunctuation))
+
+tidy_nicd_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+data("stop_words")
+
+top_nicd_words<-
+   tidy_nicd_tweets %>%
+      anti_join(stop_words) %>%
+        filter(!(word=="https"|
+                 word=="rt"|
+                 word=="t.co"|
+                 word=="amp")) %>%
+            count(word) %>%
+              arrange(desc(n))
+
+#MOST FREQUENTLY SHARED LINK
+nicd_shared_links <- 
+  nicd_tweets %>% 
+  filter(!is.na(urls_expanded_url)) %>% 
+  count(urls_expanded_url, sort = TRUE) %>% 
+  top_n(5)
+
+#MOST FREQUENTLY SHARED TWEET
+nicd_shared_tweets <-
+  nicd_tweets %>% 
+  arrange(-retweet_count) %>%
+  slice(1) %>% 
+  select(created_at, screen_name, text, retweet_count)
+
+#MOST LIKED TWEET
+nicd_liked_tweets <-
+  nicd_tweets%>% 
+  arrange(-favorite_count) %>%
+  top_n(5, favorite_count) %>% 
+  select(created_at, screen_name, text, favorite_count)
+
+#most Liked Tweets 
+nicd_most_liked_tweets <- 
+  nicd_liked_tweets %>%
+  select("text")
+
+nicd_like_val <- rbind(c('1st Most Liked Tweet',
+                         '2nd Most Liked Tweet', 
+                         '3rd Most Liked Tweet', 
+                         '4th Most Liked Tweet', 
+                         '5th Most Liked Tweet'),
+                       c(nicd_most_liked_tweets$text[1],
+                         nicd_most_liked_tweets$text[2],
+                         nicd_most_liked_tweets$text[3],
+                         nicd_most_liked_tweets$text[4],
+                         nicd_most_liked_tweets$text[5]))
+
+
+#TOP HASHTAG
+nicd_df_hashtags <- 
+  nicd_tweets %>% 
+  unnest_tokens(hashtag, text, "tweets", to_lower = FALSE) %>%
+  filter(str_detect(hashtag, "^#")) %>%
+  count(hashtag, sort = TRUE) %>%
+  top_n(10)
+
+#NICD shared tweet 
+nicd_most_shared_tweet <- 
+  nicd_shared_tweets %>%
+  select("text")
+
+nicd_share_val <-
+  rbind(c('Most Shared Tweet of NICD'),
+        c(nicd_most_shared_tweet$text))
+
+#TOP MENTIONS
+nicd_mentions <- 
+  nicd_tweets %>% 
+  unnest_tokens(mentions, text, "tweets", to_lower = FALSE) %>%
+  filter(str_detect(mentions, "^@")) %>% 
+  count(mentions, sort = TRUE) %>%
+  top_n(10)
+
+#TOP WORDS
+nicd_words <- 
+  nicd_tweets %>%
+  mutate(text = str_remove_all(text, "&amp;|&lt;|&gt;"),
+  text = str_remove_all(text, "\\s?(f|ht)(tp)(s?)(://)([^\\.])[\\.|/](\\S)"),
+  text = str_remove_all(text, "[^\x01-\x7F]")) %>% 
+  unnest_tokens(word, text, token = "tweets") %>%
+  filter(!word %in% stop_words$word,
+  !word %in% str_remove_all(stop_words$word, "'"),
+  str_detect(word, "[a-z]"),
+  !str_detect(word, "^#"), 
+  !str_detect(word, "@\\S+")) %>%
+  count(word, sort = TRUE) %>%
+  top_n(10)
+
+```
+
+```{r HealthZA Cleaning, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide', echo=FALSE}
+
+# Same cleaning process as described in the first cleaning chunk
+
+healthza_corpus <- 
+  Corpus(VectorSource(as.vector(healthza_tweets$text)))
+
+tidy_healthza_tweets <- 
+  healthza_tweets %>%
+    select(created_at,text) %>%
+    unnest_tokens("word", text)
+
+tidy_healthza_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+healthza_corpus <- 
+  tm_map(healthza_corpus, removeWords, stopwords("english"))
+
+tidy_healthza_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+healthza_corpus <- 
+  tm_map(healthza_corpus, content_transformer(removePunctuation))
+
+tidy_healthza_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+data("stop_words")
+
+top_healthza_words<-
+   tidy_healthza_tweets %>%
+      anti_join(stop_words) %>%
+        filter(!(word=="https"|
+                 word=="rt"|
+                 word=="t.co"|
+                 word=="amp")) %>%
+            count(word) %>%
+              arrange(desc(n))
+
+#MOST FREQUENTLY SHARED LINK
+healthza_shared_links <-
+  healthza_tweets %>% 
+  filter(!is.na(urls_expanded_url)) %>% 
+  count(urls_expanded_url, sort = TRUE) %>% 
+  top_n(5)
+
+#MOST FREQUENTLY SHARED TWEET
+healthza_shared_tweets <-
+  healthza_tweets %>% 
+  arrange(-retweet_count) %>%
+  slice(1) %>% 
+  select(created_at, screen_name, text, retweet_count)
+
+#MOST LIKED TWEET
+healthza_liked_tweets <-
+  healthza_tweets%>% 
+  arrange(-favorite_count) %>%
+  top_n(5, favorite_count) %>% 
+  select(created_at, screen_name, text, favorite_count)
+
+healthza_most_liked_tweets <-
+  healthza_liked_tweets %>%
+  select("text")
+
+healthza_like_val <- 
+  rbind(c('1st Most Liked Tweet',
+          '2nd Most Liked Tweet', 
+          '3rd Most Liked Tweet',
+          '4th Most Liked Tweet', 
+          '5th Most Liked Tweet'),
+        c(healthza_most_liked_tweets$text[1],
+          healthza_most_liked_tweets$text[2],
+          healthza_most_liked_tweets$text[3],
+          healthza_most_liked_tweets$text[4],
+          healthza_most_liked_tweets$text[5]))
+
+#TOP HASHTAG
+healthza_df_hashtags <- 
+  healthza_tweets %>% 
+  unnest_tokens(hashtag, text, "tweets", to_lower = FALSE) %>%
+  filter(str_detect(hashtag, "^#")) %>%
+  count(hashtag, sort = TRUE) %>%
+  top_n(10)
+
+#MOST SHARED TWEET 
+healthza_most_shared_tweet <- 
+  healthza_shared_tweets %>%
+  select("text")
+
+healthza_share_val <- 
+  rbind(c('Most Shared Tweet of The Department of Health'),
+        c(healthza_most_shared_tweet$text))
+
+#TOP MENTIONS
+healthza_mentions <-
+  healthza_tweets %>% 
+  unnest_tokens(mentions, text, "tweets", to_lower = FALSE) %>%
+  filter(str_detect(mentions, "^@")) %>% 
+  count(mentions, sort = TRUE) %>%
+  top_n(10)
+
+#TOP WORDS
+healthza_words <- 
+  healthza_tweets %>%
+  mutate(text = str_remove_all(text, "&amp;|&lt;|&gt;"),
+  text = str_remove_all(text, "\\s?(f|ht)(tp)(://)([^\\.])(s?)[\\.|/](\\S)"),
+  text = str_remove_all(text, "[^\x01-\x7F]")) %>% 
+  unnest_tokens(word, text, token = "tweets") %>%
+  filter(!word %in% stop_words$word,
+  !word %in% str_remove_all(stop_words$word, "'"),
+  str_detect(word, "[a-z]"),
+  !str_detect(word, "^#"), 
+  !str_detect(word, "@\\S+")) %>%
+  count(word, sort = TRUE) %>%
+  top_n(10)
+```
+
+```{r EWN CLEANING, results='hide', message=FALSE, warning=FALSE, paged.print=FALSE, echo=FALSE}
+
+# Same cleaning process as described in the first cleaning chunk
+
+ewnreporter_corpus <- 
+  Corpus(VectorSource(as.vector(ewnreporter_tweets$text)))
+
+tidy_ewnreporter_tweets <- 
+  ewnreporter_tweets %>%
+    select(created_at,text) %>%
+    unnest_tokens("word", text)
+
+tidy_ewnreporter_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+ewnreporter_corpus <- 
+  tm_map(ewnreporter_corpus, removeWords, stopwords("english"))
+
+tidy_ewnreporter_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+ewnreporter_corpus <- 
+  tm_map(ewnreporter_corpus, content_transformer(removePunctuation))
+
+tidy_ewnreporter_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+data("stop_words")
+
+#Top words
+top_ewnreporter_words<-
+   tidy_ewnreporter_tweets %>%
+      anti_join(stop_words) %>%
+        filter(!(word=="https"|
+                 word=="rt"|
+                 word=="t.co"|
+                 word=="amp")) %>%
+            count(word) %>%
+              arrange(desc(n))
+
+#MOST FREQUENTLY SHARED LINK
+ewnreporter_shared_links <- 
+  ewnreporter_tweets %>% 
+  filter(!is.na(urls_expanded_url)) %>% 
+  count(urls_expanded_url, sort = TRUE) %>% 
+  top_n(5)
+
+#MOST FREQUENTLY SHARED TWEET
+ewnreporter_shared_tweets <- 
+  ewnreporter_tweets %>% 
+  arrange(-retweet_count) %>%
+  slice(1) %>% 
+  select(created_at, screen_name, text, retweet_count)
+
+#MOST FREQUENTLY SHARED TWEET
+ewnreporter_most_shared_tweet <-
+  ewnreporter_shared_tweets %>%
+  select("text")
+
+ewn_share_val <- 
+  rbind(c('Most Shared Tweet of EWN News'),
+        c(ewnreporter_most_shared_tweet$text))
+
+#MOST LIKED TWEET
+ewnreporter_liked_tweets <-
+  ewnreporter_tweets%>% 
+  arrange(-favorite_count) %>%
+  top_n(5, favorite_count) %>% 
+  select(created_at, screen_name, text, favorite_count)
+
+ewnreporter_most_liked_tweets <- 
+  ewnreporter_liked_tweets %>%
+  select("text")
+
+ewn_like_val <-
+  rbind(c('1st Most Liked Tweet', 
+          '2nd Most Liked Tweet', 
+          '3rd Most Liked Tweet', 
+          '4th Most Liked Tweet', 
+          '5th Most Liked Tweet'),
+        c(ewnreporter_most_liked_tweets$text[1],
+          ewnreporter_most_liked_tweets$text[2],
+          ewnreporter_most_liked_tweets$text[3],
+          ewnreporter_most_liked_tweets$text[4],
+          ewnreporter_most_liked_tweets$text[5]))
+
+#TOP HASHTAG
+ewnreporter_df_hashtags <- 
+  ewnreporter_tweets %>% 
+  unnest_tokens(hashtag, text, "tweets", to_lower = FALSE) %>%
+  filter(str_detect(hashtag, "^#")) %>%
+  count(hashtag, sort = TRUE) %>%
+  top_n(10)
+
+#TOP MENTIONS
+ewnreporter_mentions <- 
+  ewnreporter_tweets %>% 
+  unnest_tokens(mentions, text, "tweets", to_lower = FALSE) %>%
+  filter(str_detect(mentions, "^@")) %>% 
+  count(mentions, sort = TRUE) %>%
+  top_n(10)
+
+#TOP WORDS
+ewnreporter_words <- 
+  ewnreporter_tweets %>%
+  mutate(text = str_remove_all(text, "&amp;|&lt;|&gt;"),
+  text = str_remove_all(text, "\\s?(s?)(f|ht)(tp)(://)([^\\.])[\\.|/](\\S)"),
+  text = str_remove_all(text, "[^\x01-\x7F]")) %>% 
+  unnest_tokens(word, text, token = "tweets") %>%
+  filter(!word %in% stop_words$word,
+  !word %in% str_remove_all(stop_words$word, "'"),
+  str_detect(word, "[a-z]"),
+  !str_detect(word, "^#"), 
+  !str_detect(word, "@\\S+")) %>%
+  count(word, sort = TRUE) %>%
+  top_n(10)
+
+```
+
+```{r NEWS24 CLEANING, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide', echo=FALSE}
+
+# Same cleaning process as described in the first cleaning chunk
+
+news24_corpus <- 
+  Corpus(VectorSource(as.vector(news24_tweets$text)))
+
+tidy_news24_tweets <- 
+  news24_tweets %>%
+    select(created_at,text) %>%
+    unnest_tokens("word", text)
+
+tidy_news24_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+news24_corpus <- 
+  tm_map(news24_corpus, removeWords, stopwords("english"))
+
+tidy_news24_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+news24_corpus <- 
+  tm_map(news24_corpus, content_transformer(removePunctuation))
+
+tidy_news24_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+data("stop_words")
+
+top_news24_words<-
+   tidy_news24_tweets %>%
+      anti_join(stop_words) %>%
+        filter(!(word=="https"|
+                 word=="rt"|
+                 word=="t.co"|
+                 word=="amp")) %>%
+            count(word) %>%
+              arrange(desc(n))
+
+#MOST FREQUENTLY SHARED LINK
+news24_shared_links <-
+  news24_tweets %>% 
+  filter(!is.na(urls_expanded_url)) %>% 
+  count(urls_expanded_url, sort = TRUE) %>% 
+  top_n(5)
+
+#MOST FREQUENTLY SHARED TWEET
+news24_shared_tweets <-
+  news24_tweets %>% 
+  arrange(-retweet_count) %>%
+  slice(1) %>% 
+  select(created_at, screen_name, text, retweet_count)
+
+news24_most_shared_tweet <- 
+  news24_shared_tweets %>%
+  select("text")
+
+news24_share_val <- 
+  rbind(c('Most Shared Tweet of News24 News'),
+        c(news24_most_shared_tweet$text))
+
+#TOP HASHTAG
+news24_df_hashtags <- 
+  news24_tweets %>% 
+  unnest_tokens(hashtag, text, "tweets", to_lower = FALSE) %>%
+  filter(str_detect(hashtag, "^#")) %>%
+  count(hashtag, sort = TRUE) %>%
+  top_n(10)
+
+
+#TOP MENTIONS
+news24_mentions <-
+  news24_tweets %>% 
+  unnest_tokens(mentions, text, "tweets", to_lower = FALSE) %>%
+  filter(str_detect(mentions, "^@")) %>% 
+  count(mentions, sort = TRUE) %>%
+  top_n(10)
+
+#MOST LIKED TWEET
+news24_liked_tweets <-
+  news24_tweets%>% 
+  arrange(-favorite_count) %>%
+  top_n(5, favorite_count) %>% 
+  select(created_at, screen_name, text, favorite_count)
+
+news24_most_liked_tweets <-
+  news24_liked_tweets %>%
+  select("text")
+
+news24_like_val <- 
+  rbind(c('1st Most Liked Tweet', 
+          '2nd Most Liked Tweet',
+          '3rd Most Liked Tweet', 
+          '4th Most Liked Tweet', 
+          '5th Most Liked Tweet'),
+        c(news24_most_liked_tweets$text[1],
+         news24_most_liked_tweets$text[2],
+         news24_most_liked_tweets$text[3],
+         news24_most_liked_tweets$text[4],
+         news24_most_liked_tweets$text[5]))
+
+#Top words
+news24_words <- 
+  news24_tweets %>%
+  mutate(text = str_remove_all(text, "&amp;|&lt;|&gt;"),
+  text = str_remove_all(text, "\\s?(f|ht)(tp)(s?)(://)([^\\.])[\\.|/](\\S)"),
+  text = str_remove_all(text, "[^\x01-\x7F]")) %>% 
+  unnest_tokens(word, text, token = "tweets") %>%
+  filter(!word %in% stop_words$word,
+  !word %in% str_remove_all(stop_words$word, "'"),
+  str_detect(word, "[a-z]"),
+  !str_detect(word, "^#"), 
+  !str_detect(word, "@\\S+")) %>%
+  count(word, sort = TRUE) %>%
+  top_n(10)
+
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results='hide', echo=FALSE}
+
+# Same cleaning process as described in the first cleaning chunk
+
+GovernmentZA_corpus <- 
+  Corpus(VectorSource(as.vector(GovernmentZA_timeline_df$text)))
+
+tidy_GovernmentZA_tweets <- 
+  GovernmentZA_timeline_df %>%
+    select(created_at,text) %>%
+    unnest_tokens("word", text)
+
+tidy_GovernmentZA_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+GovernmentZA_corpus <- 
+  tm_map(GovernmentZA_corpus, removeWords, stopwords("english"))
+
+tidy_GovernmentZA_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+GovernmentZA_corpus <- 
+  tm_map(GovernmentZA_corpus, content_transformer(removePunctuation))
+
+tidy_GovernmentZA_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+data("stop_words")
+
+top_GovernmentZA_words<-
+   tidy_GovernmentZA_tweets %>%
+      anti_join(stop_words) %>%
+        filter(!(word=="https"|
+                 word=="rt"|
+                 word=="t.co"|
+                 word=="amp")) %>%
+            count(word) %>%
+              arrange(desc(n))
+
+
+#MOST FREQUENTLY SHARED LINK
+GovernmentZA_shared_links <-
+  GovernmentZA_timeline_df %>% 
+  filter(!is.na(urls_expanded_url)) %>% 
+  count(urls_expanded_url, sort = TRUE) %>% 
+  top_n(5)
+
+#MOST FREQUENTLY SHARED TWEET
+GovernmentZA_shared_tweets <-
+  GovernmentZA_timeline_df %>% 
+  arrange(-retweet_count) %>%
+  slice(1) %>% 
+  select(created_at, screen_name, text, retweet_count)
+
+GovernmentZA_most_shared_tweet <- 
+  GovernmentZA_shared_tweets %>%
+  select("text")
+
+GovZA_share_val <-
+  rbind(c('Most Shared Tweet of SA Government News'),
+        c(GovernmentZA_most_shared_tweet$text))
+
+#MOST LIKED TWEET
+GovernmentZA_liked_tweets <-
+  GovernmentZA_timeline_df%>% 
+  arrange(-favorite_count) %>%
+  top_n(5, favorite_count) %>% 
+  select(created_at, screen_name, text, favorite_count)
+
+GovernmentZA_most_liked_tweets <- 
+  GovernmentZA_liked_tweets %>%
+  select("text")
+
+GovZA_like_val <- 
+  rbind(c('1st Most Liked Tweet',
+          '2nd Most Liked Tweet', 
+          '3rd Most Liked Tweet', 
+          '4th Most Liked Tweet', 
+          '5th Most Liked Tweet'),
+        c(GovernmentZA_most_liked_tweets$text[1],
+          GovernmentZA_most_liked_tweets$text[2],
+          GovernmentZA_most_liked_tweets$text[3],
+          GovernmentZA_most_liked_tweets$text[4],
+          GovernmentZA_most_liked_tweets$text[5]))
+
+#TOP HASHTAG
+GovernmentZA_df_hashtags <- 
+  GovernmentZA_timeline_df %>% 
+  unnest_tokens(hashtag, text, "tweets", to_lower = FALSE) %>%
+  filter(str_detect(hashtag, "^#")) %>%
+  count(hashtag, sort = TRUE) %>%
+  top_n(10)
+
+#TOP MENTIONS
+GovernmentZA_mentions <-
+  GovernmentZA_timeline_df %>% 
+  unnest_tokens(mentions, text, "tweets", to_lower = FALSE) %>%
+  filter(str_detect(mentions, "^@")) %>% 
+  count(mentions, sort = TRUE) %>%
+  top_n(10)
+
+#TOP 10 words
+GovernmentZA_df_words <- 
+  GovernmentZA_timeline_df %>%
+  mutate(text = str_remove_all(text, "&amp;|&lt;|&gt;"),
+  text = str_remove_all(text, "\\s?(f|ht)(tp)(s?)(://)([^\\.])[\\.|/](\\S)"),
+  text = str_remove_all(text, "[^\x01-\x7F]")) %>% 
+  unnest_tokens(word, text, token = "tweets") %>%
+  filter(!word %in% stop_words$word,
+  !word %in% str_remove_all(stop_words$word, "'"),
+  str_detect(word, "[a-z]"),
+  !str_detect(word, "^#"), 
+  !str_detect(word, "@\\S+")) %>%
+  count(word, sort = TRUE) %>%
+  top_n(10)
+
+#TFIDF
+tidy_GovernmentZA_tfidf <- 
+  GovernmentZA_timeline_df %>%
+    select(created_at,text) %>%
+      unnest_tokens("word", text) %>%
+        anti_join(stop_words) %>%
+           count(word, created_at) %>%
+              bind_tf_idf(word, created_at, n)
+
+top_GovernmentZA_tfidf <-
+  tidy_GovernmentZA_tfidf %>%
+  arrange(desc(tf_idf))
+
+top_GovernmentZA_tfidf$word[1]
+```
+
+```{r CLEANING HEALTH24, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide', echo=FALSE}
+
+# Same cleaning process as described in the first cleaning chunk
+
+health24_corpus <- 
+  Corpus(VectorSource(as.vector(health24_timeline_df$text)))
+
+tidy_health24_tweets <- 
+  health24_timeline_df %>%
+    select(created_at,text) %>%
+    unnest_tokens("word", text)
+
+tidy_health24_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+health24_corpus <- 
+  tm_map(health24_corpus, removeWords, stopwords("english"))
+
+tidy_health24_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+health24_corpus <- 
+  tm_map(health24_corpus, content_transformer(removePunctuation))
+
+tidy_health24_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+data("stop_words")
+
+top_health24_words<-
+   tidy_health24_tweets %>%
+      anti_join(stop_words) %>%
+        filter(!(word=="https"|
+                 word=="rt"|
+                 word=="t.co"|
+                 word=="amp")) %>%
+            count(word) %>%
+              arrange(desc(n))
+
+
+tidy_health24_tfidf<- 
+  health24_timeline_df %>%
+    select(created_at,text) %>%
+      unnest_tokens("word", text) %>%
+        anti_join(stop_words) %>%
+           count(word, created_at) %>%
+              bind_tf_idf(word, created_at, n)
+
+top_health24_tfidf<-
+  tidy_health24_tfidf %>%
+  arrange(desc(tf_idf))
+
+top_health24_tfidf$word[1]
+ 
+#MOST SHARED LINKS
+health24_df_shared_links <- 
+  health24_timeline_df %>% 
+  filter(!is.na(urls_expanded_url)) %>% 
+  count(urls_expanded_url, sort = TRUE) %>% 
+  top_n(5)
+
+#MOST LIKED TWEET
+health24_df_liked_tweets <- 
+  health24_timeline_df %>% 
+  arrange(-favorite_count) %>%
+  top_n(5, favorite_count) %>% 
+  select(created_at, screen_name, text, favorite_count)
+
+health24_most_liked_tweets <-
+  health24_df_liked_tweets %>%
+  select("text")
+
+health24_like_val <- 
+  rbind(c('1st Most Liked Tweet', 
+          '2nd Most Liked Tweet',
+          '3rd Most Liked Tweet',
+          '4th Most Liked Tweet', 
+          '5th Most Liked Tweet'),
+        c(health24_most_liked_tweets$text[1],
+          health24_most_liked_tweets$text[2],
+          health24_most_liked_tweets$text[3],
+          health24_most_liked_tweets$text[4],
+          health24_most_liked_tweets$text[5]))
+
+
+#TOP HASHTAG
+health24_df_hashtags <- 
+  health24_timeline_df %>% 
+  unnest_tokens(hashtag, text, "tweets", to_lower = FALSE) %>%
+  filter(str_detect(hashtag, "^#")) %>%
+  count(hashtag, sort = TRUE) %>%
+  top_n(10)
+
+#MOST FREQUENTLY SHARED TWEET
+
+health24_df_shared_tweets <- 
+  health24_timeline_df %>% 
+  arrange(-retweet_count) %>%
+  slice(1) %>% 
+  select(created_at, screen_name, text, retweet_count)
+
+health24_most_shared_tweet <- 
+  health24_df_shared_tweets %>%
+  select("text")
+
+health24_share_val <- 
+  rbind(c('Most Shared Tweet of Health24'),
+  c(health24_most_shared_tweet$text))
+
+# top mentions
+
+health24_df_mentions <- 
+  health24_timeline_df %>% 
+  unnest_tokens(mentions, text, "tweets", to_lower = FALSE) %>%
+  filter(str_detect(mentions, "^@")) %>% 
+  count(mentions, sort = TRUE) %>%
+  top_n(10)
+
+# top words
+
+health24_df_words <- 
+  health24_timeline_df %>%
+  mutate(text = str_remove_all(text, "&amp;|&lt;|&gt;"),
+  text = str_remove_all(text, "\\s?(f|ht)(s?)(://)(tp)([^\\.])[\\.|/](\\S)"),
+  text = str_remove_all(text, "[^\x01-\x7F]")) %>% 
+  unnest_tokens(word, text, token = "tweets") %>%
+  filter(!word %in% stop_words$word,
+  !word %in% str_remove_all(stop_words$word, "'"),
+  str_detect(word, "[a-z]"),
+  !str_detect(word, "^#"), 
+  !str_detect(word, "@\\S+")) %>%
+  count(word, sort = TRUE) %>%
+  top_n(10)
+
+```
+
+```{r SAgovnews CLEANING, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide', echo=FALSE}
+
+# Same cleaning process as described in the first cleaning chunk
+
+SAgovnews_corpus <- 
+  Corpus(VectorSource(as.vector(SAgovnews_timeline_df$text)))
+
+tidy_SAgovnews_tweets <- 
+  SAgovnews_timeline_df %>%
+    select(created_at,text) %>%
+    unnest_tokens("word", text)
+
+tidy_SAgovnews_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+SAgovnews_corpus <- 
+  tm_map(SAgovnews_corpus, removeWords, stopwords("english"))
+
+tidy_SAgovnews_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+SAgovnews_corpus <- 
+  tm_map(SAgovnews_corpus, content_transformer(removePunctuation))
+
+tidy_SAgovnews_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+data("stop_words")
+
+top_SAgovnews_words<-
+   tidy_SAgovnews_tweets %>%
+      anti_join(stop_words) %>%
+        filter(!(word=="https"|
+                 word=="rt"|
+                 word=="t.co"|
+                 word=="amp")) %>%
+            count(word) %>%
+              arrange(desc(n))
+
+
+tidy_SAgovnews_tfidf<- 
+  SAgovnews_timeline_df %>%
+    select(created_at,text) %>%
+      unnest_tokens("word", text) %>%
+        anti_join(stop_words) %>%
+           count(word, created_at) %>%
+              bind_tf_idf(word, created_at, n)
+
+top_SAgovnews_tfidf<-
+  tidy_SAgovnews_tfidf %>%
+  arrange(desc(tf_idf))
+
+top_SAgovnews_tfidf$word[1]
+
+#MOST SHARED LINKS
+SAgovnews_df_shared_links <- 
+  SAgovnews_timeline_df %>% 
+  filter(!is.na(urls_expanded_url)) %>% 
+  count(urls_expanded_url, sort = TRUE) %>% 
+  top_n(5)
+
+#MOST SHARED TWEETS
+SAgovnews_df_shared_tweets <- 
+  SAgovnews_timeline_df %>% 
+  arrange(-retweet_count) %>%
+  slice(1) %>% 
+  select(created_at, screen_name, text, retweet_count)
+
+SAgovnews_most_shared_tweet <- 
+  SAgovnews_df_shared_tweets %>%
+  select("text")
+
+SAgovnews_share_val <- 
+  rbind(c('Most Shared Tweet of SA Government News'),
+        c(SAgovnews_most_shared_tweet$text))
+
+#MOST LIKED TWEETS
+SAgovnews_df_liked_tweets <- 
+  SAgovnews_timeline_df%>% 
+  arrange(-favorite_count) %>%
+  top_n(5, favorite_count) %>% 
+  select(created_at, screen_name, text, favorite_count)
+
+SAgovnews_most_liked_tweets <-
+  SAgovnews_df_liked_tweets %>%
+  select("text")
+
+SAgovnews_like_val <-
+  rbind(c('1st Most Liked Tweet', 
+          '2nd Most Liked Tweet',
+          '3rd Most Liked Tweet', 
+          '4th Most Liked Tweet', 
+          '5th Most Liked Tweet'),
+        c(SAgovnews_most_liked_tweets$text[1],
+          SAgovnews_most_liked_tweets$text[2],
+          SAgovnews_most_liked_tweets$text[3],
+          SAgovnews_most_liked_tweets$text[4],
+          SAgovnews_most_liked_tweets$text[5]))
+
+#TOP HASTAGS
+SAgovnews_df_hashtags <- 
+  SAgovnews_timeline_df %>% 
+  unnest_tokens(hashtag, text, "tweets", to_lower = FALSE) %>%
+  filter(str_detect(hashtag, "^#")) %>%
+  count(hashtag, sort = TRUE) %>%
+  top_n(10)
+
+#MOST MENTIONS
+SAgovnews_df_mentions <- 
+  SAgovnews_timeline_df %>% 
+  unnest_tokens(mentions, text, "tweets", to_lower = FALSE) %>%
+  filter(str_detect(mentions, "^@")) %>% 
+  count(mentions, sort = TRUE) %>%
+  top_n(10)
+
+#TOP WORDS
+SAgovnews_df_words <- 
+  SAgovnews_timeline_df %>%
+  mutate(text = str_remove_all(text, "&amp;|&lt;|&gt;"),
+  text = str_remove_all(text, "\\s?(f|ht)(tp)(://)(s?)([^\\.])[\\.|/](\\S)"),
+  text = str_remove_all(text, "[^\x01-\x7F]")) %>% 
+  unnest_tokens(word, text, token = "tweets") %>%
+  filter(!word %in% stop_words$word,
+  !word %in% str_remove_all(stop_words$word, "'"),
+  str_detect(word, "[a-z]"),
+  !str_detect(word, "^#"), 
+  !str_detect(word, "@\\S+")) %>%
+  count(word, sort = TRUE) %>%
+  top_n(10)
+
+```
+
+```{r clean_sabc_data, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide', echo=FALSE}
+
+# Same cleaning process as described in the first cleaning chunk
+
+sabc_news_corpus <- 
+  Corpus(VectorSource(as.vector(sabc_news_timeline_df$text)))
+
+tidy_sabc_tweets <- 
+  sabc_news_timeline_df %>%
+    select(created_at,text) %>%
+    unnest_tokens("word", text)
+
+tidy_sabc_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+sabc_news_corpus <- 
+  tm_map(sabc_news_corpus, removeWords, stopwords("english"))
+
+tidy_sabc_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+sabc_news_corpus <- 
+  tm_map(sabc_news_corpus, content_transformer(removePunctuation))
+
+tidy_sabc_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+data("stop_words")
+
+top_sabc_words<-
+   tidy_sabc_tweets %>%
+      anti_join(stop_words) %>%
+        filter(!(word=="https"|
+                 word=="rt"|
+                 word=="t.co"|
+                 word=="amp")) %>%
+            count(word) %>%
+              arrange(desc(n))
+
+tidy_sabc_tfidf<- 
+  sabc_news_timeline_df %>%
+    select(created_at,text) %>%
+      unnest_tokens("word", text) %>%
+        anti_join(stop_words) %>%
+           count(word, created_at) %>%
+              bind_tf_idf(word, created_at, n)
+
+top_sabc_tfidf<-
+  tidy_sabc_tfidf %>%
+  arrange(desc(tf_idf))
+
+top_sabc_tfidf$word[1]
+
+
+#MOST FREQUENTLY SHARED LINKS
+sabc_news_shared_links <- 
+  sabc_news_timeline_df %>% 
+  filter(!is.na(urls_expanded_url)) %>% 
+  count(urls_expanded_url, sort = TRUE) %>% 
+  top_n(5)
+
+#MOST FREQUENTLY SHARED TWEETS
+sabc_news_shared_tweets <- 
+  sabc_news_timeline_df %>% 
+  arrange(-retweet_count) %>%
+  slice(1) %>% 
+  select(created_at, screen_name, text, retweet_count)
+
+#MOST FREQUENTLY SHARED TWEET
+
+sabc_news_df_shared_tweets <- 
+  sabc_news_timeline_df %>% 
+  arrange(-retweet_count) %>%
+  slice(1) %>% 
+  select(created_at, screen_name, text, retweet_count)
+
+sabc_news_most_shared_tweet <-
+  sabc_news_df_shared_tweets %>%
+  select("text")
+
+sabc_share_val <- 
+  rbind(c('Most Shared Tweet of SABC News'),
+        c(sabc_news_most_shared_tweet$text))
+
+#MOST LIKED TWEETS
+sabc_news_liked_tweets <- 
+  sabc_news_timeline_df%>% 
+  arrange(-favorite_count) %>%
+  top_n(5, favorite_count) %>% 
+  select(created_at, screen_name, text, favorite_count)
+
+#MOST LIKED TWEET
+sabc_news_df_liked_tweets <- 
+  sabc_news_timeline_df %>% 
+  arrange(-favorite_count) %>%
+  top_n(5, favorite_count) %>% 
+  select(created_at, screen_name, text, favorite_count)
+
+sabc_news_most_liked_tweets <-
+  sabc_news_df_liked_tweets %>%
+  select("text")
+
+sabc_like_val <-
+  rbind(c('1st Most Liked Tweet', 
+          '2nd Most Liked Tweet', 
+          '3rd Most Liked Tweet', 
+          '4th Most Liked Tweet', 
+          '5th Most Liked Tweet'),
+        c(sabc_news_most_liked_tweets$text[1],
+          sabc_news_most_liked_tweets$text[2],
+          sabc_news_most_liked_tweets$text[3],
+          sabc_news_most_liked_tweets$text[4],
+          sabc_news_most_liked_tweets$text[5]))
+
+#TOP HASHTAGS
+sabc_news_hashtags <- 
+  sabc_news_timeline_df %>% 
+  unnest_tokens(hashtag, text, "tweets", to_lower = FALSE) %>%
+  filter(str_detect(hashtag, "^#")) %>%
+  count(hashtag, sort = TRUE) %>%
+  top_n(10)
+
+#SABCNews shared tweet Cleaning
+SABC_news_most_shared_tweet <-
+  sabc_news_shared_tweets %>%
+  select("text")
+
+sabc_share_val <-
+  rbind(c('Most Shared Tweet of SABC News'),
+        c(SABC_news_most_shared_tweet$text))
+
+#TOP MENTIONS
+sabc_news_mentions <- 
+  sabc_news_timeline_df %>% 
+  unnest_tokens(mentions, text, "tweets", to_lower = FALSE) %>%
+  filter(str_detect(mentions, "^@")) %>% 
+  count(mentions, sort = TRUE) %>%
+  top_n(10)
+
+#TOP WORDS
+sabc_news_words <- 
+  sabc_news_timeline_df %>%
+  mutate(text = str_remove_all(text, "&amp;|&lt;|&gt;"),
+  text = str_remove_all(text, "\\s?(f|ht)(s?)(://)(tp)([^\\.])[\\.|/](\\S)"),
+  text = str_remove_all(text, "[^\x01-\x7F]")) %>% 
+  unnest_tokens(word, text, token = "tweets") %>%
+  filter(!word %in% stop_words$word,
+  !word %in% str_remove_all(stop_words$word, "'"),
+  str_detect(word, "[a-z]"),
+  !str_detect(word, "^#"), 
+  !str_detect(word, "@\\S+")) %>%
+  count(word, sort = TRUE) %>%
+  top_n(10)
+
+```
+
+```{r eNCA CLEANING, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide', echo=FALSE}
+
+# Same cleaning process as described in the first cleaning chunk
+
+enca_news_corpus <- 
+  Corpus(VectorSource(as.vector(enca_timeline_df$text)))
+
+tidy_enca_tweets <- 
+  enca_timeline_df %>%
+    select(created_at,text) %>%
+    unnest_tokens("word", text)
+
+tidy_enca_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+enca_news_corpus <- 
+  tm_map(enca_news_corpus, removeWords, stopwords("english"))
+
+tidy_enca_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+enca_news_corpus <- 
+  tm_map(enca_news_corpus, content_transformer(removePunctuation))
+
+tidy_enca_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+data("stop_words")
+
+top_enca_words<-
+   tidy_enca_tweets %>%
+      anti_join(stop_words) %>%
+        filter(!(word=="https"|
+                 word=="rt"|
+                 word=="t.co"|
+                 word=="amp")) %>%
+            count(word) %>%
+              arrange(desc(n))
+
+tidy_enca_tfidf<- 
+  enca_timeline_df %>%
+    select(created_at,text) %>%
+      unnest_tokens("word", text) %>%
+        anti_join(stop_words) %>%
+           count(word, created_at) %>%
+              bind_tf_idf(word, created_at, n)
+
+top_enca_tfidf<-
+  tidy_enca_tfidf %>%
+  arrange(desc(tf_idf))
+
+top_enca_tfidf$word[1]
+
+#MOST SHARED LINKS
+enca_news_shared_links <- 
+  enca_timeline_df %>% 
+  filter(!is.na(urls_expanded_url)) %>% 
+  count(urls_expanded_url, sort = TRUE) %>% 
+  top_n(5)
+
+#TOP SHARED TWEETS
+enca_news_shared_tweets <- 
+  enca_timeline_df %>% 
+  arrange(-retweet_count) %>%
+  slice(1) %>% 
+  select(created_at, screen_name, text, retweet_count)
+
+#MOST FREQUENTLY SHARED TWEETS
+
+enca_news_shared_tweets <- 
+  enca_timeline_df %>% 
+  arrange(-retweet_count) %>%
+  slice(1) %>% 
+  select(created_at, screen_name, text, retweet_count)
+
+enca_news_most_shared_tweet <-
+  enca_news_shared_tweets %>%
+  select("text")
+
+enca_share_val <- 
+  rbind(c('Most Shared Tweet of eNCA'),
+        c(enca_news_most_shared_tweet$text))
+
+#MOST LIKED TWEETS
+enca_news_liked_tweets <- 
+  enca_timeline_df%>% 
+  arrange(-favorite_count) %>%
+  top_n(5, favorite_count) %>% 
+  select(created_at, screen_name, text, favorite_count)
+
+enca_news_most_liked_tweets <- 
+  enca_news_liked_tweets %>%
+  select("text")
+
+enca_like_val <- 
+  rbind(c('1st Most Liked Tweet',
+          '2nd Most Liked Tweet', 
+          '3rd Most Liked Tweet',
+          '4th Most Liked Tweet', 
+          '5th Most Liked Tweet'),
+        c(enca_news_most_liked_tweets$text[1],
+          enca_news_most_liked_tweets$text[2],
+          enca_news_most_liked_tweets$text[3],
+          enca_news_most_liked_tweets$text[4],
+          enca_news_most_liked_tweets$text[5]))
+
+#TOP HASHTAGS
+enca_news_hashtags <- 
+  enca_timeline_df %>% 
+  unnest_tokens(hashtag, text, "tweets", to_lower = FALSE) %>%
+  filter(str_detect(hashtag, "^#")) %>%
+  count(hashtag, sort = TRUE) %>%
+  top_n(10)
+
+#Top words plot
+enca_news_words <- 
+  enca_timeline_df %>%
+  mutate(text = str_remove_all(text, "&amp;|&lt;|&gt;"),
+  text = str_remove_all(text, "\\s?(s?)(f|ht)(tp)(://)([^\\.])[\\.|/](\\S)"),
+  text = str_remove_all(text, "[^\x01-\x7F]")) %>% 
+  unnest_tokens(word, text, token = "tweets") %>%
+  filter(!word %in% stop_words$word,
+  !word %in% str_remove_all(stop_words$word, "'"),
+  str_detect(word, "[a-z]"),
+  !str_detect(word, "^#"), 
+  !str_detect(word, "@\\S+")) %>%
+  count(word, sort = TRUE) %>%
+  top_n(10)
+
+#MENTIONS 
+enca_news_mentions <- 
+  enca_timeline_df %>% 
+  unnest_tokens(mentions, text, "tweets", to_lower = FALSE) %>%
+  filter(str_detect(mentions, "^@")) %>% 
+  count(mentions, sort = TRUE) %>%
+  top_n(10)
+
+
+```
+
+```{r clean_all_media_data, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+
+# Same cleaning process as described in the first cleaning chunk
+
+## Joining all ten media sources Twitter data
+
+complete_data_source_df <-
+  bhekisisa_tweets %>%
+  full_join(ewnreporter_tweets) %>%
+  full_join(GovernmentZA_timeline_df) %>%
+  full_join(healthza_tweets) %>%
+  full_join(news24_tweets) %>%
+  full_join(nicd_tweets) %>%
+  full_join(sabc_news_timeline_df) %>%
+  full_join(enca_timeline_df) %>%
+  full_join(SAgovnews_timeline_df) %>%
+  full_join(health24_timeline_df)
+
+all_media_corpus <- 
+  Corpus(VectorSource
+         (as.vector
+          (complete_data_source_df$text)))
+
+tidy_all_media_tweets <- 
+  complete_data_source_df %>%
+    select(created_at,text) %>%
+    unnest_tokens("word", text)
+
+tidy_all_media_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+all_media_corpus <- 
+  tm_map(all_media_corpus, removeWords, stopwords("english"))
+
+tidy_all_media_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+all_media_corpus <- 
+  tm_map(all_media_corpus, content_transformer(removePunctuation))
+
+tidy_all_media_tweets %>%
+  count(word) %>%
+    arrange(desc(n))
+
+data("stop_words")
+
+top_all_media_words<-
+   tidy_all_media_tweets %>%
+      anti_join(stop_words) %>%
+        filter(!(word=="https"|
+                 word=="rt"|
+                 word=="t.co"|
+                 word=="amp")) %>%
+            count(word) %>%
+              arrange(desc(n))
+
+#MOST FREQUENTLY SHARED TWEETS
+
+media_shared_tweets <- 
+  complete_data_source_df %>% 
+  arrange(-retweet_count) %>%
+  slice(1) %>% 
+  select(created_at, screen_name, text, retweet_count)
+
+media_most_shared_tweet <-
+  media_shared_tweets %>%
+  select("text")
+
+media_share_val <- 
+  rbind(c('Most Shared Tweet of all media'),
+        c(enca_news_most_shared_tweet$text))
+
+#MOST LIKED TWEETS
+media_liked_tweets <- 
+  complete_data_source_df%>% 
+  arrange(-favorite_count) %>%
+  top_n(5, favorite_count) %>% 
+  select(created_at, screen_name, text, favorite_count)
+
+media_most_liked_tweets <- 
+  media_liked_tweets %>%
+  select("text")
+
+media_like_val <- 
+  rbind(c('1st Most Liked Tweet',
+          '2nd Most Liked Tweet', 
+          '3rd Most Liked Tweet',
+          '4th Most Liked Tweet', 
+          '5th Most Liked Tweet'),
+        c(media_most_liked_tweets$text[1],
+          media_most_liked_tweets$text[2],
+          media_most_liked_tweets$text[3],
+          media_most_liked_tweets$text[4],
+          media_most_liked_tweets$text[5]))
+```
+
+# Report Results:
+
+## Minimum Requirements:
+
+
+## BHEKISISA (@Bhekisisa_MG)
+
+
+Bhekisisa is an independent Centre for Health Journalism. The information conveyed through them is used and published by numerous other accredited news sources and media agents. The COVID-19 virus is a pandemic, which concerns the healthcare sector of South Africa as a whole, the role of Bhekisisa as an informative platform seems imperative within this context.
+
+```{r Bhek PLOTS, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+#Bhekisisa Timeline Frequency
+ts_plot(bhekisisa_tweets, color = "#00ADB5", size = 1) +
+  theme_hc() +
+  labs(title = "Frequency of Bhekisisa Tweets", 
+       caption = "Updated: July 2021") +
+  ylab("Frequency") +
+  xlab(NULL)
+```
+In the last month, there has not been any significant changes in the frequency of tweets 
+by Bhekisisa. Except for a rapid spike at the end of June, which could have a correlation to the Covid-19 third wave.
+```{r results='hide', echo=FALSE}
+#Most liked Tweets Plot
+bhek_fig1 <- 
+  plot_ly(
+  type = 'table',
+  columnorder = c(1,2),
+  columnwidth = c(250, 400),
+  header = list(
+    values = c('<b>Most Liked Tweets</b><br>as of July 2021', '<b>Tweet Description</b>'),
+    line = list(color = '#506784'),
+    fill = list(color = '#00ADB5'),
+    align = c('left','center'),
+    font = list(color = 'white', size = 12),
+    height = 40
+  ),
+  cells = list(
+    values = Bhek_like_val,
+    line = list(color = '#506784'),
+    fill = list(color = c('#f8f4ff', 'white')),
+    align = c('left', 'center'),
+    font = list(color = c('#506784'), size = 12),
+    height = 30
+    ))
+
+bhek_fig1
+
+```
+1st most liked tweet of Bhekisisa was a tweet concerning a Covid -19 webinar hosted by Bhekisisa, with the host being their Editor-in-chief, Mia Malan. 2nd Most liked tweet is a tweet concerning the induction of a new type of ATM machine, which is not relevant to this report. 3rd being a tweet mentioning the Bhekisisa hosted webinar regarding the Covid pandemic with a section mentioning covid vaccination sites. The 4th most liked tweet conveyed information pertaining national Covid statistics and the 5th described the situation regarding Johnson & Johnson vaccinations for teachers. 
+
+```{r results='hide', echo=FALSE}
+#Hashtag plot
+ggplot(bhekisisa_df_hashtags, aes(x = reorder(hashtag, n), y = n)) +
+  geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Hashtags in Bhekisisa Tweets")
+```
+Top hashtags of Bhekisisa are structured as follows: 1. ‘#COVID19SA’, 2. ‘#COVID19’, 3. ‘#BhekisisaResource’, 4. ‘#vaccine’, 5. ‘#VaccineRolloutSA’ 6. ‘#COVID19inSA’, 7. ‘#Pfizer’, 8. ‘#JnJ’ 9. ‘#COVID’, 10. ‘#vaccines’.
+
+```{r results='hide', echo=FALSE}
+#Most frequently shared tweet plot
+bhek_fig <- 
+  plot_ly(
+  type = 'table',
+  columnorder = c(1,2),
+  columnwidth = c(280,400),
+  header = list(
+    values = c('<b>Most Frequently Shared Tweet</b><br>as of July 2021', '<b>Tweet Description</b>'),
+    line = list(color = '#506784'),
+    fill = list(color = '#00ADB5'),
+    align = c('left','center'),
+    font = list(color = 'white', size = 12),
+    height = 40
+  ),
+  cells = list(
+    values = bhek_share_val,
+    line = list(color = '#506784'),
+    fill = list(color = c('#f8f4ff', 'white')),
+    align = c('left', 'center'),
+    font = list(color = c('#506784'), size = 12),
+    height = 30
+    ))
+
+bhek_fig 
+```
+The most shared tweet by Bhekisisa is a tweet concerning abortion activism, and as such can be deemed insignificant. 
+```{r results='hide', echo=FALSE}
+#Top mentions plot
+ggplot(bhekisisa_mentions, aes(x = reorder(mentions, n), y = n)) +
+  geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Mentions in Bhekisisa Tweets")
+```
+The top mention of @Bhekisisa_MG is that of a Bhekisisa reporter named Joan van Dyk (@vandykjoan), second being ‘@miamalan’. The 3rd and 4th referring to Professor Abdool Karim, who can be viewed as the face of Covid related science in South Africa. 
+
+```{r results='hide', echo=FALSE}
+#Top words plot
+ggplot(bhekisisa_words, aes(x = reorder(word, n), y = n)) +
+  geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Words in Bhekisisa Tweets")
+
+```
+Top words graph:
+‘vaccine’ was the fourth most prominent word followed by ‘jab’ at 5th place. The first most frequently used word within the Bhekisisa tweets was ‘archive’, as the Bhekisisa Twitter account uses the word to refer to their own resource pool with which their followers can interact with. The second and third words, ‘people’ and ‘south’ are deemed insignificant.
+
+
+## National Institute of Communicable Diseases (@nicd_sa)
+
+
+The National Institute for Communicable Diseases (NICD) is a South African National public health institute. Its’ actions are determined by the South African government, reflecting means of response, monitoring, training, diagnostics, and research of communicable diseases. One of its main purposes being outbreak response and surveillance. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+#NICD Timeline Frequency
+ts_plot(nicd_tweets, color = "#00ADB5", size = 1) +
+  theme_hc() +
+  labs(title = "Frequency of NICD Tweets", 
+       caption = "Updated: July 2021") +
+  ylab("Frequency") +
+  xlab(NULL)
+
+```
+Time series showing the frequency of NICD tweets over time indicates that on average more than 90 tweets are made per week except for June 27 where less than 90 tweets were made.
+
+```{r results='hide', echo=FALSE}
+#Most liked Tweets Plot
+nicd_fig1 <- plot_ly(
+  type = 'table',
+  columnorder = c(1,2),
+  columnwidth = c(250,400),
+  header = list(
+    values = c('<b>Most Liked Tweets</b><br>as of July 2021', '<b>Tweet Description</b>'),
+    line = list(color = '#506784'),
+    fill = list(color = '#00ADB5'),
+    align = c('left','center'),
+    font = list(color = 'white', size = 12),
+    height = 40
+  ),
+  cells = list(
+    values = nicd_like_val,
+    line = list(color = '#506784'),
+    fill = list(color = c('#f8f4ff', 'white')),
+    align = c('left', 'center'),
+    font = list(color = c('#506784'), size = 12),
+    height = 30
+    ))
+
+nicd_fig1
+```
+NICD’s most liked tweet contains information regarding the initial outbreak of the SARS-CoV-2 virus, also referred to as covid-19. The 2nd most liked tweet from the NICD account is a tweet praising SA’s frontline health workers in the struggle against the Covid-19 outbreak. The third most liked tweet is a tweet signalling the early increase of confirmed cases within South Africa. The fourth most liked tweet indicates the confirmed cases within South Africa reaching 1505. The 5th most liked tweet is another informative tweet on the growing number of confirmed cases in South Africa. 
+
+```{r results='hide', echo=FALSE}
+#Hashtag plot
+ggplot(nicd_df_hashtags, aes(x = reorder(hashtag, n), y = n)) +
+  geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Hashtags in NICD Tweets")
+```
+Top hashtags are structured as follows: 1. ‘#COVID19’, 2. ‘#FightCOVID19’, 3. ‘#StaySafe’, 4. ‘#COVID19Surveillance’, 5. ‘#FlattenTheCurve’ 6. ‘#StayAtHome’, 7. ‘#SpreadTheFacts’, 8. ‘#coronavirus’ 9. ‘#TisTheSeasonToBeSafe’, 10. ‘#StayAthome’.
+
+```{r results='hide', echo=FALSE}
+#Most shared plot
+nicd_fig <- plot_ly(
+  type = 'table',
+  columnorder = c(1,2),
+  columnwidth = c(280,400),
+  header = list(
+    values = c('<b>Most Frequently Shared Tweet</b><br>as of July 2021', '<b>Tweet Description</b>'),
+    line = list(color = '#506784'),
+    fill = list(color = '#00ADB5'),
+    align = c('left','center'),
+    font = list(color = 'white', size = 12),
+    height = 40
+  ),
+  cells = list(
+    values = nicd_share_val,
+    line = list(color = '#506784'),
+    fill = list(color = c('#f8f4ff', 'white')),
+    align = c('left', 'center'),
+    font = list(color = c('#506784'), size = 12),
+    height = 30
+    ))
+
+nicd_fig
+```
+The most frequently shared tweet contains information about the rising confirmed cases of COVID-19, at 402 confirmed cases. 
+
+```{r results='hide', echo=FALSE}
+#Top mentions plot
+ggplot(nicd_mentions, aes(x = reorder(mentions, n), y = n)) +
+    geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Mentions in NICD Tweets")
+```
+The NICD is a major provider of national health information with ‘@HealthZA’ (SA Department of Health) being the most frequent mention within their tweets. Followed by ‘ @nicdsa’ and ‘@DrZweliMkhize’, the National Minister of Health, at the time. The ‘@WHO’ and ‘@SAHPRA1’, two significant Covid-19 related institutes, one being national and the other international. 
+
+```{r results='hide', echo=FALSE}
+#Top words plot
+ggplot(nicd_words, aes(x = reorder(word, n), y = n)) +
+    geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Words in NICD Tweets")
+
+```
+The most frequent word within NICD tweets is ‘total’, followed by ‘death’ and ‘update’. This could be an indication of COVID statistics being released by the NICD platform. The fourth and fifth words are ‘safe’ and ‘tests’. 
+
+## South African Department of Health (@HealthZA)
+
+
+The South African Department of Health is an organizational sector within the South African government concerned with all aspects of national health. The executive department consists of several committees and councils all with the main goal of increasing the health status of the South African citizen.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+#HealthZA Timeline Frequency
+ts_plot(healthza_tweets, color = "#00ADB5", size = 1) +
+  theme_hc() +
+  labs(title = "Frequency of HealthZA Tweets",
+       caption = "Updated: July 2021") +
+  ylab("Frequency") +
+  xlab(NULL)
+```
+The frequency of HealthZA tweets do not showcase any noteworthy information. 
+```{r results='hide', echo=FALSE}
+#Most liked Tweets Plot
+healthza_fig1 <-
+  plot_ly(
+  type = 'table',
+  columnorder = c(1,2),
+  columnwidth = c(250,400),
+  header = list(
+    values = c('<b>Most Liked Tweets</b><br>as of July 2021', '<b>Tweet Description</b>'),
+    line = list(color = '#506784'),
+    fill = list(color = '#00ADB5'),
+    align = c('left','center'),
+    font = list(color = 'white', size = 12),
+    height = 40
+  ),
+  cells = list(
+    values = healthza_like_val,
+    line = list(color = '#506784'),
+    fill = list(color = c('#f8f4ff', 'white')),
+    align = c('left', 'center'),
+    font = list(color = c('#506784'), size = 12),
+    height = 30
+    ))
+
+healthza_fig1
+```
+1st Most liked Tweet is that of a message from SA’s Department of Health announcing that there are recoveries among reported Covid-19 cases. The 2nd referring to international help in SA’s COVID-19 cause, especially that of Cuban medical staff. The 3rd tweet informing the public on details about the second reported covid-related death in SA. The 4th giving an update on confirmed and recovered cases, followed by the 5th which contains information on the spread of Covid through social interactions.
+
+```{r results='hide', echo=FALSE}
+#Hashtag plot
+ggplot(healthza_df_hashtags, aes(x = reorder(hashtag, n), y = n)) +
+  geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Hashtags in Department of Health Tweets")
+```
+Top hashtags are structured as follows: 1. ‘#COVID19’, 2. ‘#CoronaVirusSA’, 3. ‘#CoronaVirusUpdate’, 4. ‘#Covid19’, 5. ‘#CoronavirusSA’ 6. ‘#VaccineRolloutSA’, 7. ‘#CoronaVirus’, 8. ‘#StaySafe’ 9. ‘#coronavirus’, 10. ‘#CelebrateSafe’.
+
+```{r  results='hide', echo=FALSE}
+#Most shared tweet plot
+healthza_fig <- 
+  plot_ly(
+  type = 'table',
+  columnorder = c(1,2),
+  columnwidth = c(280,400),
+  header = list(
+    values = c('<b>Most Frequently Shared Tweet</b><br>as of July 2021', '<b>Tweet Description</b>'),
+    line = list(color = '#506784'),
+    fill = list(color = '#00ADB5'),
+    align = c('left','center'),
+    font = list(color = 'white', size = 12),
+    height = 40
+  ),
+  cells = list(
+    values = healthza_share_val,
+    line = list(color = '#506784'),
+    fill = list(color = c('#f8f4ff', 'white')),
+    align = c('left', 'center'),
+    font = list(color = c('#506784'), size = 12),
+    height = 30
+    ))
+
+healthza_fig
+```
+The Department of Health’s most shared tweet is an announcement telling citizens who were part of certain cruise trips to contact the department as soon as possible. 
+
+```{r results='hide', echo=FALSE}
+#Top mentions
+ggplot(healthza_mentions, aes(x = reorder(mentions, n), y = n)) +
+    geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Mentions in Department of Health Tweets")
+```
+‘@GautengHealth’ is among the top five mentions of HealthZA tweets, this is referring to the current severity of the lockdown within the province. Among those in the top 10 mentions are, ‘@CyrilRamaphosa’, ‘@MRCza’, ‘@UNICEFSA’, @nicdsa’, ‘@WHOSouthAfrica’ and ‘@WestCapeHealth’. All these mentions can be related to the Covid-19 pandemic. 
+
+```{r results='hide', echo=FALSE}
+#Top words Plot
+ggplot(healthza_words, aes(x = reorder(word, n), y = n)) +
+    geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Words in Department of Health Tweets")
+  
+```
+The most frequent word is ‘south’ followed by ‘africa’. The logical reasoning for this would be that most tweets would contain these two terms as the account holder is the National Department of Health. The 3rd term is ‘total’ followed by ‘deaths’, as covid statistics are released through this channel. The 5th most frequent word is ‘covid19’ and the 8th is ‘tests’. 
+
+## Eye Witness News (@ewnreporter)
+
+
+Eye Witness News is a South African news agency covering media on a broad base of applicable industries and sectors.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+#EWN Timeline Frequency
+ts_plot(ewnreporter_tweets, color = "#00ADB5", size = 1) +
+  theme_hc() +
+  labs(title = "Frequency of EWN Tweets",
+       caption = "Updated: July 2021") +
+  ylab("Frequency") +
+  xlab(NULL)
+```
+Time series of the frequency of tweets by EWN indicates that on average the account tweets in a volatile manner. 
+
+```{r results='hide', echo=FALSE}
+#Most liked Tweets Plot
+ewnreporter_fig1 <- plot_ly(
+  type = 'table',
+  columnorder = c(1,2),
+  columnwidth = c(250,400),
+  header = list(
+    values = c('<b>Most Liked Tweets</b><br>as of July 2021', '<b>Tweet Description</b>'),
+    line = list(color = '#506784'),
+    fill = list(color = '#00ADB5'),
+    align = c('left','center'),
+    font = list(color = 'white', size = 12),
+    height = 40
+  ),
+  cells = list(
+    values = ewn_like_val,
+    line = list(color = '#506784'),
+    fill = list(color = c('#f8f4ff', 'white')),
+    align = c('left', 'center'),
+    font = list(color = c('#506784'), size = 12),
+    height = 30
+    ))
+
+ewnreporter_fig1
+```
+None of the most liked tweets of the EWN Twitter account are related to COVID and as such is deemed irrelevant. 
+
+```{r results='hide', echo=FALSE}
+#Hashtag plot
+ggplot(ewnreporter_df_hashtags, aes(x = reorder(hashtag, n), y = n)) +
+  geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Hashtags in EWN Tweets")
+```
+Top hashtags are structured as follows: 1. ‘#COVID19’, 2. ‘#FightCOVID19’, 3. ‘#StaySafe’, 4. ‘#COVID19Surveillance’, 5. ‘#FlattenTheCurve’ 6. ‘#StayAtHome’, 7. ‘#SpreadTheFacts’, 8. ‘#coronavirus’ 9. ‘#StayAthome’, 10. ‘#TisTheSeasonToBeSafe’.
+
+```{r results='hide', echo=FALSE}
+#Most frequently shared
+ewnreporter_fig <- plot_ly(
+  type = 'table',
+  columnorder = c(1,2),
+  columnwidth = c(280,400),
+  header = list(
+    values = c('<b>Most Frequently Shared Tweet</b><br>as of July 2021', '<b>Tweet Description</b>'),
+    line = list(color = '#506784'),
+    fill = list(color = '#00ADB5'),
+    align = c('left','center'),
+    font = list(color = 'white', size = 12),
+    height = 40
+  ),
+  cells = list(
+    values = ewn_share_val,
+    line = list(color = '#506784'),
+    fill = list(color = c('#f8f4ff', 'white')),
+    align = c('left', 'center'),
+    font = list(color = c('#506784'), size = 12),
+    height = 30
+    ))
+
+ewnreporter_fig
+```
+The most frequently shared tweet of News24 is unrelated to covid-19.
+
+```{r results='hide', echo=FALSE}
+#Top mentions
+ggplot(ewnreporter_mentions, aes(x = reorder(mentions, n), y = n)) +
+    geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Mentions in EWN Tweets")
+```
+The top mentions in EWN tweets are unrelated to Covid-19.
+
+```{r results='hide', echo=FALSE}
+#Top words
+ggplot(ewnreporter_words, aes(x = reorder(word, n), y = n)) +
+    geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Words in EWN Tweets")
+
+```
+Most frequently words in EWN news tweets are ‘police’, ‘people’, ‘cape’, followed with ‘covid19’ in the 4th position and ‘health’ in 5th. 
+
+## NEWS24 (@News24)
+
+
+News24 is on of South Africa’s most prominent online news platforms and was launched in 2007. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+#News24 Timeline Frequency
+ts_plot(news24_tweets, color = "#00ADB5", size = 1) +
+  theme_hc() +
+  labs(title = "Frequency of News24 Tweets") +
+  ylab("Frequency") +
+  xlab(NULL)
+```
+There are no significant peaks or low points News24 tweets. 
+
+```{r results='hide', echo=FALSE}
+#Most liked Tweets Plot
+news24_fig1 <- 
+  plot_ly(
+  type = 'table',
+  columnorder = c(1,2),
+  columnwidth = c(250,400),
+  header = list(
+    values = c('<b>Most Liked Tweets</b><br>as of July 2021', '<b>Tweet Description</b>'),
+    line = list(color = '#506784'),
+    fill = list(color = '#00ADB5'),
+    align = c('left','center'),
+    font = list(color = 'white', size = 12),
+    height = 40
+  ),
+  cells = list(
+    values = news24_like_val,
+    line = list(color = '#506784'),
+    fill = list(color = c('#f8f4ff', 'white')),
+    align = c('left', 'center'),
+    font = list(color = c('#506784'), size = 12),
+    height = 30
+    ))
+
+news24_fig1
+```
+The most liked tweet is unrelated to COVID-19, including the 2nd, 3rd,4th and 5th. 
+
+```{r  results='hide', echo=FALSE}
+#Hashtag plot
+ggplot(news24_df_hashtags, aes(x = reorder(hashtag, n), y = n)) +
+  geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Hashtags in News24 Tweets")
+```
+Top hashtags are structured as follows: 1. ‘#COVID19’, 2. ‘#FightCOVID19’, 3. ‘#StaySafe’, 4. ‘#COVID19Surveillance’, 5. ‘#FlattenTheCurve’ 6. ‘#StayAtHome’, 7. ‘#SpreadTheFacts’, 8. ‘#coronavirus’ 9. ‘#StayAthome’, 10. ‘#TisTheSeasonToBeSafe’.
+
+```{r results='hide', echo=FALSE}
+#Most shared tweets plot
+news24_fig <-
+  plot_ly(
+  type = 'table',
+  columnorder = c(1,2),
+  columnwidth = c(250,400),
+  header = list(
+    values = c('<b>Most Frequently Shared Tweet</b><br>as of July 2021', '<b>Tweet Description</b>'),
+    line = list(color = '#506784'),
+    fill = list(color = '#00ADB5'),
+    align = c('left','center'),
+    font = list(color = 'white', size = 12),
+    height = 40
+  ),
+  cells = list(
+    values = news24_share_val,
+    line = list(color = '#506784'),
+    fill = list(color = c('#f8f4ff', 'white')),
+    align = c('left', 'center'),
+    font = list(color = c('#506784'), size = 12),
+    height = 30
+    ))
+
+news24_fig
+```
+The most frequently shared tweet of News24 is unrelated to covid-19.
+
+```{r results='hide', echo=FALSE}
+#Top mentions 
+ggplot(news24_mentions, aes(x = reorder(mentions, n), y = n)) +
+    geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Mentions in News24 Tweets")
+```
+Top mention being ‘@HealthZA’, the South African Department of Health, followed by ‘@nicdsa’ and ‘@DrZweliMkhize’, the South African Minister of Health. The World Health Organisation (@WHO) and SAHPRA (@SAHPRA1), which is a branch of the South African Department of Health tasked with the regulation of all health -related products and clinical trials in SA, are within the top 10 of these mentions.
+
+```{r  results='hide', echo=FALSE}
+#Top words
+ggplot(news24_words, aes(x = reorder(word, n), y = n)) +
+    geom_col(fill = "#00ADB5") +
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Words in News24 Tweets")
+
+```
+Most frequenly used word within News24 tweets is ‘covid19’, followed by more irrelevant words such as ‘south’, ‘cape’ and ‘court’.
+
+## SABC News (@SABCNews)
+
+The SABC News account was chosen because it is the official Twitter-based digital platform used by the South African Broadcasting Corporation, which is one of the most popular and reputable news media sources in South Africa. 
+
+```{r SABC_News, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+#SABC Timeline Frequency
+ts_plot(sabc_news_timeline_df, color = "#00ADB5", size = 1) +
+  theme_hc() +
+  labs(title = "Frequency of SABC News Tweets",
+       caption= "Updated: July 2021") +
+  ylab("Frequency") +
+  xlab(NULL)
+```
+The SABC News time-series graph shows that the SABC twitter account tweets on average more than 40 tweets a day for the past month, except for the 14th June and 4th July 2021 where the average was less than 40. 
+
+```{r results='hide', echo=FALSE}
+#Most liked Tweets Plot
+sabc_fig1 <-
+  plot_ly(
+  type = 'table',
+  columnorder = c(1,2),
+  columnwidth = c(250,400),
+  header = list(
+    values = c('<b>Most Liked Tweets</b><br>as of July 2021', '<b>Tweet Description</b>'),
+    line = list(color = '#506784'),
+    fill = list(color = '#00ADB5'),
+    align = c('left','center'),
+    font = list(color = 'white', size = 12),
+    height = 40
+  ),
+  cells = list(
+    values = sabc_like_val,
+    line = list(color = '#506784'),
+    fill = list(color = c('#f8f4ff', 'white')),
+    align = c('left', 'center'),
+    font = list(color = c('#506784'), size = 12),
+    height = 30
+    ))
+
+sabc_fig1
+```
+The table showing the most liked tweets indicates that the top five most liked tweets cover the following topics (in descending order): The political unrest in Eswatini, the constitutional court sentencing former President Jacob Zuma to 15 months imprisonment for contempt of court, the National Liquor Traders Council states that some members vow to defy the ban on alcohol sales, the same as the second tweet mentioned and, lastly, that the former Eskom board chair, Jabu Mabuza, has passed a way due to COVID-19. From these top five tweets only two pertain to the COVID-19 pandemic. 
+
+```{r results='hide', echo=FALSE}
+#TOP HASHTAGS
+ggplot(sabc_news_hashtags, aes(x = reorder(hashtag, n), y = n), color = hashtag) +
+  geom_col(fill = "#00ADB5") +
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Hashtags in SABC News Tweets")
+```
+The bar chart showing the top ten hashtags of SABC News Tweets for the past 3200 tweets, indicates that the following hashtags are the most prevalent. “#SABCNews”, “#EURO2020”, “#ICYMI”, “#COVID19”, “#Jacob Zuma”, “#SABCWeather”, “#Euro2020”, “#StateCaptureInquiry”, “#coronavirus”, and “#COVID19SA”. 
+
+```{r results='hide', echo=FALSE}
+#Most frequently shared tweets
+sabc_fig <- plot_ly(
+  type = 'table',
+  columnorder = c(1,2),
+  columnwidth = c(280,400),
+  header = list(
+    values = c('<b>Most Frequently Shared Tweet</b><br>as of July 2021', '<b>Tweet Description</b>'),
+    line = list(color = '#506784'),
+    fill = list(color = '#00ADB5'),
+    align = c('left','center'),
+    font = list(color = 'white', size = 12),
+    height = 40
+  ),
+  cells = list(
+    values = sabc_share_val,
+    line = list(color = '#506784'),
+    fill = list(color = c('#f8f4ff', 'white')),
+    align = c('left', 'center'),
+    font = list(color = c('#506784'), size = 12),
+    height = 30
+    ))
+
+sabc_fig
+```
+
+The table showing the most frequently shared tweet from SABC News is about the political unrest in Eswatini and does not directly pertain to the COVID-19 pandemic. 
+
+```{r results='hide', echo=FALSE}
+#Top mentions
+ggplot(sabc_news_mentions, aes(x = reorder(mentions, n), y = n)) +
+  geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Mentions in SABC News Tweets")
+```
+The bar chart showing the top mentions in SABC News Tweets indicates that the most frequent mentions are “@12H00”, “@YouTube”, “@17H00”, “@18H00”, “@PogbaNo1fan”, “@TheWatchdogSABC” and “@vuyomvoko”. The mentions do not provide any insight about the COVID-19 pandemic. 
+
+```{r results='hide', echo=FALSE}
+#Top words plot
+ggplot(sabc_news_words, aes(x = reorder(word, n), y = n)) +
+  geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Words in SABC news Tweets")
+
+```
+The bar chart showing the top ten words used in SABC News Tweets indicate that the top ten words are “covid19”, “south”, “president”, “Africa”, “court”, “African”, “health”, “people”, “minister” and “video” are their top words. The chart indicates that the top word is “covid19” which appears in more than 200 tweets. 
+
+## eNCA (@eNCA)
+
+The eNCA account was chosen because it belongs to the eNCA 24-hour news channel that presents news about South Africa and Africa. The account joined in May 2011.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+#eNCA Timeline Frequency
+ts_plot(enca_timeline_df, color = "#00ADB5", size = 1) +
+  theme_hc() +
+  labs(title = "Frequency of eNCA Tweets", 
+       caption = "Updated: July 2021") +
+  ylab("Frequency")
+```
+
+The eNCA time series graph shows that eNCA tweets more than 50 tweets a day over the past month except for the week before the 7th June 2021, where there were few to zero tweets. 
+
+```{r results='hide', echo=FALSE}
+#Most frequently shared plot
+enca_news_fig <- 
+  plot_ly(
+  type = 'table',
+  columnorder = c(1,2),
+  columnwidth = c(250,400),
+  header = list(
+    values = c('<b>Most Frequently Shared Tweet</b><br>as of July 2021', '<b>Tweet Description</b>'),
+    line = list(color = '#506784'),
+    fill = list(color = '#00ADB5'),
+    align = c('left','center'),
+    font = list(color = 'white', size = 12),
+    height = 40
+  ),
+  cells = list(
+    values = enca_share_val,
+    line = list(color = '#506784'),
+    fill = list(color = c('#f8f4ff', 'white')),
+    align = c('left', 'center'),
+    font = list(color = c('#506784'), size = 12),
+    height = 30
+    ))
+
+enca_news_fig
+```
+
+The table showing the most frequently shared tweet as of July 2021 is regarding the death of a Nigerian televangelist TB Joshua.
+
+```{r  results='hide', echo=FALSE}
+#TOP HASHTAGS PLOT
+ggplot(enca_news_hashtags, aes(x = reorder(hashtag, n), y = n), color = hashtag) +
+geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Hashtags in eNCA Tweets")
+```
+
+The bar chart showing the top hashtags in eNCA tweets indicates that (in descending order) “#DStv403”, “#eNCA”, “#COVID19”, “#eNCAs”, “#SouthAfricanMorning”, “#NewsLink”, “#SouthAfricaTonight”, “#PropertyMatters”, “#AllAngles”, “#TheMiddayView” and “#TheLead” are their top hashtags. It should be noted that the COVID-19 pandemic ranks third in eNCA’s top hashtags, while the rest of the hashtags refer to either eNCA themself or the respective programmes on their television channel  (DSTV403).
+
+```{r results='hide', echo=FALSE}
+#Most liked Tweets Plot
+enca_news_fig1 <- plot_ly(
+  type = 'table',
+  columnorder = c(1,2),
+  columnwidth = c(280,400),
+  header = list(
+    values = c('<b>Most Liked Tweets</b><br>as of July 2021', '<b>Tweet Description</b>'),
+    line = list(color = '#506784'),
+    fill = list(color = '#00ADB5'),
+    align = c('left','center'),
+    font = list(color = 'white', size = 12),
+    height = 40
+  ),
+  cells = list(
+    values = enca_like_val,
+    line = list(color = '#506784'),
+    fill = list(color = c('#f8f4ff', 'white')),
+    align = c('left', 'center'),
+    font = list(color = c('#506784'), size = 12),
+    height = 30
+    ))
+
+enca_news_fig1
+```
+
+The table showing the most liked tweets indicates that the top five most liked tweets of eNCA are (in descending order) a news report of the death of TB Joshua, news report of Zuma supporters defying lockdown regulations, news report of President Cyril Ramaphosa’s address to the nation and night, a news report of former President Zuma being sentenced to 15  months imprisonment and another  report of the same thing.  
+
+```{r results='hide', echo=FALSE}
+#TOP MENTIONS plot
+ggplot(enca_news_mentions, aes(x = reorder(mentions, n), y = n)) +
+  geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Mentions in eNCA Tweets")
+```
+
+The bar chart showing the top mentions in eNCA tweets indicates that (in descending order) “@SallyBurdettSA”, “@AbsaSouthAfrica, “@FaithMangope”, “@BetterBondSA”, “@GarethEdwardsSA”, “@ABwanakawa”, “@SiphamandlaGoge”, “@TheRealClementM”, “@MasegoRahlaga” and “@revue” are the top mentions in their tweets.
+
+```{r results='hide', echo=FALSE}
+#TOP 10 words
+ggplot(enca_news_words, aes(x = reorder(word, n), y = n)) +
+  geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Words in eNCA Tweets")
+
+```
+
+The bar chart showing the top words in eNCA tweets indicate that (in descending order) “covid19”, “south”, “president”, “Africa”, “court”, “African”, “health”, “people”, “minister” and “video” are the top words used in their tweets. From this figure, it is indicated that the term “covid19” is the most prevalent term in the eNCA tweets collected. 
+
+## South African Government (@GovernmentZA)
+
+The South African Government account was chosen because it is an official account of the government, providing accurate and trustworthy information regarding the COVID-19 pandemic and lockdown regulations. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+#GovernmentZA Timeline Frequency 
+ts_plot(GovernmentZA_timeline_df, color = "#00ADB5", size = 1) +
+  theme_hc() +
+  labs(title = "Frequency of SA Government Account Tweets", 
+       caption="Updated: July 2021") +
+  ylab("Frequency")
+```
+
+The SA Government time series graph shows that the account does not post tweets very regularly, averaging less than 25 tweets a week and their past 3200 tweets span five months. There was a spike in in tweets around March 2021. 
+
+```{r results='hide', echo=FALSE}
+#Most shared tweets
+GovernmentZA_fig <- plot_ly(
+  type = 'table',
+  columnorder = c(1,2),
+  columnwidth = c(250,400),
+  header = list(
+    values = c('<b>Most Frequently Shared Tweet</b><br>as of July 2021', '<b>Tweet Description</b>'),
+    line = list(color = '#506784'),
+    fill = list(color = '#00ADB5'),
+    align = c('left','center'),
+    font = list(color = 'white', size = 12),
+    height = 40
+  ),
+  cells = list(
+    values = GovZA_share_val,
+    line = list(color = '#506784'),
+    fill = list(color = c('#f8f4ff', 'white')),
+    align = c('left', 'center'),
+    font = list(color = c('#506784'), size = 12),
+    height = 30
+    ))
+
+GovernmentZA_fig
+```
+
+The table showing the most frequently shared tweet as of July 2021 is regarding President Cyril Ramaphosa’s address to the nation with regards to the COVID-19 pandemic on 1 February 2021. 
+
+```{r results='hide', echo=FALSE}
+#Hashtag plot
+ggplot(GovernmentZA_df_hashtags, aes(x = reorder(hashtag, n), y = n)) +
+  geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Hashtags in SA Government Tweets")
+```
+
+The bar chart showing the top hashtags in SA Government tweets indicates that (in descending order) “#COVID19”, “#StaySafe”, “#VaccinateToSaveSouthAfrica”, “#SONA2021”, “#COVID19SA”, “#ChooseVaccination”, “#GrowSouthAfrica”, “#VaccineRolloutSA”, “#RIP JacksonMthembu”, “PostCabinet” and “#Covid19SA”. From this figure it can be seen that  majority of the top terms refer to the COVID-19 pandemic or the vaccination of South Africans.  
+
+```{r results='hide', echo=FALSE}
+#Most liked Tweets Plot
+GovernmentZA_fig1 <- plot_ly(
+  type = 'table',
+  columnorder = c(1,2),
+  columnwidth = c(250,400),
+  header = list(
+    values = c('<b>Most Liked Tweets</b><br>as of July 2021', '<b>Tweet Description</b>'),
+    line = list(color = '#506784'),
+    fill = list(color = '#00ADB5'),
+    align = c('left','center'),
+    font = list(color = 'white', size = 12),
+    height = 40
+  ),
+  cells = list(
+    values = GovZA_like_val,
+    line = list(color = '#506784'),
+    fill = list(color = c('#f8f4ff', 'white')),
+    align = c('left', 'center'),
+    font = list(color = c('#506784'), size = 12),
+    height = 30
+    ))
+
+GovernmentZA_fig1
+```
+
+The table showing the most liked tweets indicates that the following are the top five most  liked tweets (in descending order): first shipment of Oxford AstraZeneca vaccine doses, the first healthcare worker vaccinated in South Africa, an announcement indicating that President Ramaphosa will meet the arriving shipment of Oxford AstraZeneca vaccines, RIP notice of Jackson Methembu  and a report that the President will address the nation on 30 May 2021 with regards to the COVID-19 pandemic. 
+
+```{r results='hide', echo=FALSE}
+#Top mentions plot
+ggplot(GovernmentZA_mentions, aes(x = reorder(mentions, n), y = n)) +
+    geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Mentions in SA Government Tweets")
+```
+
+The bar chart showing the top mentions in SA Government tweets indicates that (in descending order) “@CyrilRamaphosa”, “@DrZwelieMkhize”, “@GovvernmentZA”, “@HealthZA”, “@DDMabuza”, “@ParlimentofRSA”, “@SAPoliceService”, “@DBESA”, “@HigherEduGovZA” and “@GCISMedia” are the top mentions in their tweets.
+
+```{r results='hide', echo=FALSE}
+#TOP mentions plot
+ggplot(GovernmentZA_df_words, aes(x = reorder(word, n), y = n)) +
+  geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Words in SA Government Tweets")
+
+```
+
+The bar chart showing the top words in SA Government tweets indicate that (in descending order) “president”, “minister”, “south”, “ramaphosa”, “total”, “africa”, “watch”, “sa”, “vaccination” and “live” are the top words used in their tweets. From this figure, it is indicated that the term “vaccination” is an import and prevalent term in the in the SA Government tweets collected. 
+
+## South African Government News (@SAgovnews)
+
+Official South African Government News Account on the Twitter Platform.
+
+```{r SAgovnews plots, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+#SAgovnews Timeline Frequency
+ts_plot(SAgovnews_timeline_df, color = "#00ADB5", size = 1) +
+  theme_hc() +
+  labs(title = "Frequency of SA Government News Account Tweets",
+       caption = "Updated: July 2021") +
+  ylab("Frequency")
+```
+
+```{r results='hide', echo=FALSE}
+#Most liked Tweets Plot
+SAgovnews_fig1 <- 
+  plot_ly(
+  type = 'table',
+  columnorder = c(1,2),
+  columnwidth = c(250,400),
+  header = list(
+    values = c('<b>Most Liked Tweets</b><br>as of July 2021', '<b>Tweet Description</b>'),
+    line = list(color = '#506784'),
+    fill = list(color = '#00ADB5'),
+    align = c('left','center'),
+    font = list(color = 'white', size = 12),
+    height = 40
+  ),
+  cells = list(
+    values = SAgovnews_like_val,
+    line = list(color = '#506784'),
+    fill = list(color = c('#f8f4ff', 'white')),
+    align = c('left', 'center'),
+    font = list(color = c('#506784'), size = 12),
+    height = 30
+    ))
+
+SAgovnews_fig1
+```
+Among the top 5 most liked tweets from the ‘@SAgovnews’ account none seem to hold relevant information on covid 19. 
+
+```{r results='hide', echo=FALSE}
+#Hashtag plot
+ggplot(SAgovnews_df_hashtags, aes(x = reorder(hashtag, n), y = n)) +
+  geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Hashtags in SA Government News Tweets")
+```
+Top hashtags are structured as follows: 1. ‘#COVID19’, 2. ‘#SONA2021’, 3. ‘#VaccineRolloutSA’, 4. ‘#PostCabinet’, 5. ‘#StaySafe’, 6. ‘#RamaphosaQandA’, 7. ‘#PostCabMediaBriefing’, 8. ‘#BuildingANewEconomy’, 9. ‘#CrimeStatistics’ 10. ‘#FreedomDay2021’
+
+```{r  results='hide', echo=FALSE}
+#Most shared tweets plot
+SAgovnews_fig <- plot_ly(
+  type = 'table',
+  columnorder = c(1,2),
+  columnwidth = c(250,400),
+  header = list(
+    values = c('<b>Most Frequently Shared Tweet</b><br>as of July 2021', '<b>Tweet Description</b>'),
+    line = list(color = '#506784'),
+    fill = list(color = '#00ADB5'),
+    align = c('left','center'),
+    font = list(color = 'white', size = 12),
+    height = 40
+  ),
+  cells = list(
+    values = SAgovnews_share_val,
+    line = list(color = '#506784'),
+    fill = list(color = c('#f8f4ff', 'white')),
+    align = c('left', 'center'),
+    font = list(color = c('#506784'), size = 12),
+    height = 30
+    ))
+
+SAgovnews_fig
+```
+The official news agency of the South African Government’s most frequently shared tweet is not relevant to this report. 
+
+```{r results='hide', echo=FALSE}
+#Top mentions plot
+ggplot(SAgovnews_df_mentions, aes(x = reorder(mentions, n), y = n)) +
+    geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Mentions in SA Government News Tweets")
+```
+The top mentions within the captured tweets of ‘@SAgovnews’ are: 1. ‘@CyrilRamaphosa’ 2. ‘@HealthZA’ 3. ‘@DrZweliMkhize’ 4. ‘@PresidencyZA’ 5. ‘@SAPoliceService’.
+
+```{r results='hide', echo=FALSE}
+#Top words plot
+ggplot(SAgovnews_df_words, aes(x = reorder(word, n), y = n)) +
+  geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Words in  SA Government News Tweets")
+
+```
+The most frequently used word is ‘read’, due to the account using it as an indication of extended reading material through using “[Read]” in the beginning of certain tweets. 
+
+## Health24 (@Health24com)
+
+Health24 is a branch of News24, difference being that they specialise in healthcare related news, whereas News24 takes a more general appraoch. 
+```{r HEALTH24, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+#Health24 Timeline Frequency
+ts_plot(health24_timeline_df, color = "#00ADB5", size = 1) +
+  theme_hc() +
+  labs(title = "Frequency of Health24 Tweets", 
+       caption = "Updated: July 2021") +
+  ylab("Frequency")
+```
+
+```{r results='hide', echo=FALSE}
+#Most liked Tweets Plot
+health24_fig1 <- plot_ly(
+  type = 'table',
+  columnorder = c(1,2),
+  columnwidth = c(250,400),
+  header = list(
+    values = c('<b>Most Liked Tweets</b><br>as of July 2021', '<b>Tweet Description</b>'),
+    line = list(color = '#506784'),
+    fill = list(color = '#00ADB5'),
+    align = c('left','center'),
+    font = list(color = 'white', size = 12),
+    height = 40
+  ),
+  cells = list(
+    values = health24_like_val,
+    line = list(color = '#506784'),
+    fill = list(color = c('#f8f4ff', 'white')),
+    align = c('left', 'center'),
+    font = list(color = c('#506784'), size = 12),
+    height = 30
+    ))
+
+health24_fig1
+```
+The 4th most liked tweet of Health24 pertains that of an article describing the lungs of COVID-19 patients, the only Health24 tweet relevant on this plot.
+
+```{r results='hide', echo=FALSE}
+#Hashtag plot
+ggplot(health24_df_hashtags, aes(x = reorder(hashtag, n), y = n)) +
+  geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Hashtags in health24 Tweets")
+```
+Top hashtags are structured as follows: 1. ‘#BeyondBeauty’, 2. ‘#SkinCare’, 3. ‘#coronavirus’, 4. ‘#Covid19’, 5. ‘#SkinRenewalSA’, 6. ‘#asthma’, 7. ‘#Tena’, 8. ‘#beyondbeauty’, 9. ‘#SkinRenewal’ 10. ‘#Coronavirus’
+
+```{r results='hide', echo=FALSE}
+#Most frequent shared tweets
+health24_fig <- plot_ly(
+  type = 'table',
+  columnorder = c(1,2),
+  columnwidth = c(280,400),
+  header = list(
+    values = c('<b>Most Frequently Shared Tweet</b><br>as of July 2021', '<b>Tweet Description</b>'),
+    line = list(color = '#506784'),
+    fill = list(color = '#00ADB5'),
+    align = c('left','center'),
+    font = list(color = 'white', size = 12),
+    height = 40
+  ),
+  cells = list(
+    values = health24_share_val,
+    line = list(color = '#506784'),
+    fill = list(color = c('#f8f4ff', 'white')),
+    align = c('left', 'center'),
+    font = list(color = c('#506784'), size = 12),
+    height = 30
+    ))
+
+health24_fig
+```
+The most frequently shared tweet concerns the psychological implications on doctors because of the COVID-19 epidemic.
+
+```{r results='hide', echo=FALSE}
+#Top mentions plot
+ggplot(health24_df_mentions, aes(x = reorder(mentions, n), y = n)) +
+    geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Mentions in health24 Tweets")
+```
+The top mentions within the captured tweets of ‘@SAgovnews’ are: 1. ‘@CyrilRamaphosa’ 2. ‘@HealthZA’ 3. ‘@DrZweliMkhize’ 4. ‘@PresidencyZA’ 5. ‘@SAPoliceService’.
+
+```{r  results='hide', echo=FALSE}
+#Top 10 words
+ggplot(health24_df_words, aes(x = reorder(word, n), y = n)) +
+    geom_col(fill = "#00ADB5")+
+  coord_flip()+
+  theme_hc()+
+  theme(axis.text.x = 
+  element_text(angle = 0, hjust = 1, size=8))+
+  theme(plot.title = element_text(hjust = 0.5, size=15))+
+  ylab("Frequency")+
+  xlab("")+
+  ggtitle("Top Words in health24 Tweets")
+
+```
+The 4th most frequently used word is ‘health’, followed by ‘covid19’ at 7th place. Those are solely applicable to this report. 
+
+## All Chosen Media Tweet Data Analysis
+
+The following section is the analysis of the all the Twitter accounts combined. 
+
+```{r all_media, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+
+#Complete media source Timeline Frequency
+ts_plot(complete_data_source_df, color = "#00ADB5", size = 1) +
+  theme_hc() +
+  labs(title = "Frequency of Tweets from all Media Sources", 
+       caption = "Updated: July 2021")  +
+  ylab("Frequency")
+```
+
+The overall media time series graph shows that the collected tweet data span from the end of 2017 till July 2021. From the start till 2020, the tweet frequency was relatively low, however form the beginning of 2020 there was a large increase tweets. This increase can possibly be attributed to the start of lockdown in South Africa. From the start of 2021 there are even larger increases continuing as time goes by. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+#Most frequent shared tweets
+media_share_fig <- plot_ly(
+  type = 'table',
+  columnorder = c(1,2),
+  columnwidth = c(250,400),
+  header = list(
+    values = c('<b>Most Frequently Shared Tweet</b><br>as of July 2021', '<b>Tweet Description</b>'),
+    line = list(color = '#506784'),
+    fill = list(color = '#00ADB5'),
+    align = c('left','center'),
+    font = list(color = 'white', size = 12),
+    height = 40
+  ),
+  cells = list(
+    values = media_share_val,
+    line = list(color = '#506784'),
+    fill = list(color = c('#f8f4ff', 'white')),
+    align = c('left', 'center'),
+    font = list(color = c('#506784'), size = 12),
+    height = 30
+    ))
+
+media_share_fig
+```
+
+The table showing the most frequently shared tweet as of July 2021 indicates that the most shared tweet is regarding the death of TB  Joshua.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+
+#Most liked Tweets Plot
+media_fig1 <- plot_ly(
+  type = 'table',
+  columnorder = c(1,2),
+  columnwidth = c(280,400),
+  header = list(
+    values = c('<b>Most Liked Tweets</b><br>as of July 2021', '<b>Tweet Description</b>'),
+    line = list(color = '#506784'),
+    fill = list(color = '#00ADB5'),
+    align = c('left','center'),
+    font = list(color = 'white', size = 12),
+    height = 40
+  ),
+  cells = list(
+    values = media_like_val,
+    line = list(color = '#506784'),
+    fill = list(color = c('#f8f4ff', 'white')),
+    align = c('left', 'center'),
+    font = list(color = c('#506784'), size = 12),
+    height = 30
+    ))
+
+media_fig1
+```
+
+The table showing the most liked tweets indicates that the following are the most liked tweets (in descending order): A principal (Dr Ngwako Stephen Sebopetsa) in Limpopo given a global award, the political unrest in Eswatini, the resignation of Phumzile van Damme as DA MP and party member, the passing of Shaleen Surtie Richards and the postponement of Zuma’s arrest pending ConCourt application. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+all_media_hashtags <- 
+  complete_data_source_df %>% 
+  unnest_tokens(hashtag, text, "tweets", to_lower = FALSE) %>%
+  filter(str_detect(hashtag, "^#")) %>%
+  count(hashtag, sort = TRUE) %>%
+  top_n(10)
+
+ggplot(all_media_hashtags, aes(x = reorder(hashtag, n), y = n), color = hashtag) +
+  geom_col(fill = "#00ADB5") +
+  ggtitle("Top Ten Hashtags in Chosen Media Tweets") +
+  ylab("Frequency") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 13)) + 
+  coord_flip()+
+  theme_hc()+
+  xlab("Hashtags")
+```
+
+The bar chart showing the top hashtags in overall media tweets indicates that (in descending order) “#COVID19”, “#DSTV403”, “#eNCA”, “#COVID19SA”, “#StaySafe”, “#CoronaVirusSA”, “#VaccineRolloutSA”, “#vaccine”, “#BhekisisaResource” and “SONA2021”.  From this figure it should be noted that hashtags pertaining to the COVID-19 pandemic are most prevalent. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+all_media_mentions <- 
+  complete_data_source_df %>% 
+  unnest_tokens(mentions, text, "tweets", to_lower = FALSE) %>%
+  filter(str_detect(mentions, "^@")) %>% 
+  count(mentions, sort = TRUE) %>%
+  top_n(10)
+
+ggplot(all_media_mentions, aes(x = reorder(mentions, n), y = n)) +
+  geom_col(fill = "#00ADB5") +
+  ggtitle("Top Ten Mentions in Chosen Media Tweets") +
+  coord_flip()+
+  theme_hc()+
+  xlab("Mentions")+
+  ylab("Frequency")
+```
+
+The bar chart showing the top mentions in the overall media tweets indicates that (in descending order) “@CyrilRamaphosa”, “@HealthZA”, “@vandykjoan”  ,“@DrZwelieMkhize”, “@Fin24”, “@Sports24news”, “@miamalan”, “@WitnessKZN”, “@BlSouthAfrica” and “@NkoRaphael” are the top mentions in the overall media tweets.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+all_media_words <- 
+  complete_data_source_df %>%
+  mutate(text = str_remove_all(text, "&amp;|&lt;|&gt;"),
+  text = str_remove_all(text, "\\s?(f|ht)(tp)(s?)(://)([^\\.])[\\.|/](\\S)"),
+  text = str_remove_all(text, "[^\x01-\x7F]")) %>% 
+  unnest_tokens(word, text, token = "tweets") %>%
+  filter(!word %in% stop_words$word,
+  !word %in% str_remove_all(stop_words$word, "'"),
+  str_detect(word, "[a-z]"),
+  !str_detect(word, "^#"), 
+  !str_detect(word, "@\\S+")) %>%
+  count(word, sort = TRUE) %>%
+  top_n(10)
+
+ggplot(all_media_words, aes(x = reorder(word, n), y = n)) +
+  geom_col(fill = "#00ADB5") +
+  ggtitle("Top Ten Most Prevalent Words in Chosen Media Tweets") +
+  coord_flip()+
+  theme_hc()+
+  xlab("Word")+
+  ylab("Frequency")
+```
+
+The bar chart showing the top words in the overall tweets indicate that (in descending order) “south”, “covid19”, “total”, “president”, “africa”, “total”, “read”, “minister”, “health”, “deaths” and “people” are the top words used in their tweets. From this figure, it is indicated that the term “covid19” is an import and prevalent term in the in the overall media tweets collected. 
+
+## Word Cloud of the Corpus of All Combined Media Sources
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+# Word Cloud of All Media Corpus
+pal <-
+  brewer.pal(8, "Dark2")
+
+wordcloud(all_media_corpus, min.freq=2, max.words = 150, random.order = TRUE, col = pal)
+```
+
+
+# Topic Modeling
+
+Topic modelling is a type of method used in conducting a text analysis of words grouped together. The method aims to determine the how the meaning of the words is derived from the context of the text. This is not the only method used to analyse grouped words, other examples such as cluster analysis and semantic analysis also exist. The benefits of utilising Topic Modelling include being a mixed model (each document is given a probability of being linked to a topic) and this method makes use of more advanced iterative Bayesian techniques. (Bail, 2020)
+
+## What topics have been reported on:
+
+The main topics reported on are the Covid-19 pandemic, vaccinations and the lockdown in South Africa.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+# Term Frequency Inverse Document Frequency
+
+# Clean and create  TFIDF table data frame
+
+tidy_all_media_tfidf<- 
+  joint_timelines %>%
+    select(screen_name,text) %>%
+      unnest_tokens("word", text) %>%
+        anti_join(stop_words) %>%
+           count(word, screen_name) %>%
+              bind_tf_idf(word, screen_name, n)
+
+# Determine the top ten TFIDF words
+
+top_all_media_tfidf<-
+  tidy_all_media_tfidf %>%
+  arrange(desc(tf_idf))  %>%
+  group_by(screen_name) %>%
+  top_n(10) %>%
+  ungroup
+
+# Plot bar chart showing the highest TFIDF words for each selected media source
+
+top_all_media_tfidf %>%
+    mutate(word = reorder_within(word, tf_idf, screen_name)) %>%
+    ggplot(aes(word, tf_idf, fill = screen_name)) +
+    geom_col(alpha = 0.8, show.legend = FALSE) +
+    facet_wrap(~ screen_name, scales = "free", ncol = 3) +
+    scale_x_reordered() +
+    coord_flip() +
+    theme(strip.text=element_text(size=11)) +
+    labs(x = NULL, y = "tf-idf",
+         title = "Highest tf-idf words in Chosen Media Sources",
+         subtitle = "Individual Media Sources focus on different word elements")
+```
+
+A collection of bar charts showing the words with the highest tf-idf for each of the chosen sources.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+data(stop_words)
+
+# Tokenize selected media sources
+
+worded_media <- 
+  joint_timelines %>% 
+  unnest_tokens(word, text) %>%
+  anti_join(stop_words) 
+
+# Create a Document Term Matrix of selected media sources
+
+media_DTM <-
+  worded_media %>%
+  count(screen_name, word) %>%
+  cast_dtm(screen_name, word, n)
+
+#  Create a topic model of selected media sources with six topics
+
+media_topic_model <- 
+  LDA(media_DTM, k=6, control = list(seed = 321))
+
+# Create a beta mtrix topic model
+
+media_topics <- 
+  tidy(media_topic_model, matrix = "beta")
+
+# Determine the top terms
+
+media_top_terms <- 
+  media_topics %>%
+  group_by(topic) %>%
+  top_n(10, beta) %>%
+  ungroup() %>%
+  arrange(topic, -beta)
+
+# Plot bar charts showing the highest word probabilities for each topic
+
+media_top_terms %>%
+  mutate(term = reorder(term, beta)) %>%
+  ggplot(aes(term, beta, fill = factor(topic))) +
+  geom_col(show.legend = FALSE, fill = "#00ADB5") +
+  facet_wrap(~ topic, scales = "free") +
+  coord_flip() +
+  labs(x = NULL, y = "beta",
+         title = "Highest word probabilities for each topic",
+         subtitle = "Different words are associated with different topics")
+```
+
+A collection of beta bar charts showing the words with the highest probabilities for each topic.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+# Determine the top ten media topics
+
+beta_wide <- 
+  media_topics %>%
+  mutate(topic = paste0("topic", topic)) %>%
+  pivot_wider(names_from = topic, values_from = beta) %>% 
+  filter(topic1 > .001 | topic2 > .001) %>%
+  mutate(log_ratio = log2(topic2 / topic1)) %>%
+  top_n(10)
+
+# Plot top ten media topics
+
+ggplot() +
+  geom_col(beta_wide, 
+           mapping = aes(x = reorder(term, topic1), 
+                         y = topic1),
+           fill = "#00ADB5") +
+  coord_flip() +
+  ggtitle("Top Ten Media Topics According to Beta Topic Model")
+```
+
+Bar chart showing the top ten media topics according to the Beta Matrix media topic model at Topic 1 probabilities. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+media_gamma <-
+  tidy(media_topic_model, matrix = "gamma",
+       document_names = rownames(joint_timelines))
+
+ggplot(media_gamma, aes(gamma, fill = as.factor(topic))) +
+  geom_histogram(alpha = 0.8, show.legend = FALSE) +
+  facet_wrap(~ topic, ncol = 3) +
+  labs(title = "Distribution of word probabilities for each topic",
+       subtitle = "Each topic is associated with one source",
+       y = "Number of sources", x = expression(gamma))
+```
+
+A collection of gamma bar charts showing the distribution of word probabilities for each topic.
+
+#  Text Networks
+
+Text Networks are a representation of the relationship between words. These networks are able to represent a corpus of documents or words, where each document or word represents a node and the edges which connect nodes represent how similar words or documents are to each other. In this report, text networks were used to determine how frequent words would occur along side each other, where words represent nodes and edges represent the frequency of the words' occurrence. (Bail, 2020)
+
+Many benefits exist when using text networks. Text networks help recognise and understand patterns within text and how they are connected. Text networks are workable with text of any length whereas topic modelling only works with short text. By identifying social clusters in texts more insight can be derived from text, as opposed to more simple text analysis techniques.
+
+## Author-based Text Network Modeling of All Media Sources:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide', fig.pos='H'}
+
+# Slice a portion of complete_data_source_df grouped by screen_name
+
+media_collection_text <- 
+  complete_data_source_df %>% 
+  group_by(screen_name) %>% 
+  slice(1L)
+
+# Prepare the text in order to create the author-based text network
+
+author_prepped_media_text <-
+  PrepText(media_collection_text,
+           groupvar = "screen_name",
+           textvar = "text",
+           node_type = "groups",
+           tokenizer = "words",
+           pos = "nouns",
+           remove_stop_words = TRUE,
+           compound_nouns = TRUE)
+
+# Create author-based text network
+
+author_media_text_network <- CreateTextnet(author_prepped_media_text)
+
+# Visualize text network in a 2D format
+
+author_vis_media_2d <-
+  VisTextNet(author_media_text_network,
+             alpha = 2,
+             label_degree_cut = 0)
+
+# Print 2D author-based text network 
+
+author_vis_media_2d
+
+# Visualize text network in a 3D format
+
+author_vis_media <- VisTextNetD3(author_media_text_network,
+                      height = 500,
+                      width = 500,
+                      bound = T,
+                      zoom = TRUE,
+                      charge = -10,
+                      alpha = 2)
+
+# Create and save the text network as an HTML widget
+
+saveWidget(author_vis_media, "author_media_text_network.html")
+
+# Print 3D author-based text network 
+
+author_vis_media
+
+# Identify clusters or communities of words within the text
+
+author_media_communities <-
+  TextCommunities(author_media_text_network)
+
+# Interpret text and identify 10 highest TFIDF frequencies within each cluster
+
+top_words_modularity_classes <-
+  InterpretText(author_media_text_network,
+                author_prepped_media_text)
+
+# Calculate cultural betweenness or text centrality 
+
+text_centrality <- 
+  TextCentrality(author_media_text_network)
+```
+
+From the author-based text network figures above, it can be surmised that there are two author clusters or communities. One which consists of SABC News,  South African Government News and Health24.com. Another which consists of eNCA, Bhekisisa, EWN and News24. At closer inspection, it can be  seen that there is stronger similarity between SA Government News and Health24.com than SABC News. There is strong similarity between eNCA and EWN, Bhekisisa and EWN, as well as News24 and EWN. It should be noted that there is not a strong similarity between Bhekisisa and eNCA, as well as a moderate similarity between EWN and News24 when compared to its other connections.       
+
+## Word-based Text Network Modeling of All Media Sources:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide', fig.pos='H'}
+
+# Slice a portion of joint_timelines grouped by screen_name
+
+media_collection_text <- 
+  joint_timelines %>% 
+  group_by(screen_name) %>% 
+  slice(1L)
+
+# Prepare the text in order to create the word-based text network
+
+word_prepped_media_text <- 
+  PrepText(media_collection_text, 
+           groupvar = "screen_name", 
+           textvar = "text", 
+           node_type = "words", 
+           tokenizer = "words", 
+           pos = "nouns", 
+           remove_stop_words = TRUE, 
+           compound_nouns = TRUE)
+
+# Create word-based text network
+
+words_media_text_network <- CreateTextnet(word_prepped_media_text)
+
+# Visualize text network in a 2D format
+
+VisTextNet(words_media_text_network,
+           alpha = 2,
+           label_degree_cut = 0)
+
+# Visualize text network in a 3D format
+
+words_vis_media <- VisTextNetD3(words_media_text_network,
+                      height = 500,
+                      width = 500,
+                      bound = T,
+                      zoom = TRUE,
+                      charge = -10,
+                      alpha = 2)
+
+# Create and save the text network as an HTML widget
+
+saveWidget(words_vis_media, "words_media_text_network.html")
+
+# Print 3D word-based text network 
+
+words_vis_media
+
+# Identify clusters or communities of words within the text
+
+words_media_communities <- 
+  TextCommunities(words_media_text_network)
+
+# Interpret text and identify 10 highest TFIDF frequencies within each cluster
+
+words_network_top_words_modularity_classes <- 
+  InterpretText(words_media_text_network, word_prepped_media_text)
+
+# Calculate cultural betweenness or text centrality
+
+words_text_centrality <- 
+  TextCentrality(words_media_text_network)
+```
+
+In the word-based text network, there has been six clusters or communities identified. The latent theme within the pink cluster is the reporting by SABC News on COVID-19. The latent theme within the black cluster focuses on Bhekisisa's reporting. The red cluster focuses on the ANC.  The cyan (bright light blue) cluster focuses on COVID-19 vaccinations. The green cluster focuses on COVID-19  cases and hospitalizations. The blue cluster focuses on COVID-19 case, recovery, death and other associated data. There is a connection between the cyan, green and blue clusters indicating strong similarity in words used to convey similar themes.   
+
+# The Sentiment of this reporting:
+
+
+Sentiment analysis is the process with which one tries to identify and classify the underlying emotions drawn from a piece of text.The visualisations and descriptions below were documented using the ‘bing’ lexicon, a text-based dictionary, which transcribes and categorises terms in a binary fashion. A plot containing the average sentiment of each of the 6 media sources were chosen to enable a holistic perspective on the data. In viewing these sentiment visualisations, the difference in government media sources to that of private media agencies become apparent. Government sources, like HealthZA (The South African Department of Health) and others, post tweets reflecting that of a more neutral to positive stance, whereas private media agencies post tweets throughout the sentiment spectrum. 
+
+# Sentiment Analysis
+
+```{r Bhekisisa Sentiment Analysis, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+#select
+bhekisisa_sent <-
+  bhekisisa_tweets %>%
+  select("screen_name", "text")
+
+#manual removal of http elements
+bhekisisa_sent$stripped_text <- gsub("http\\S+", "",bhekisisa_sent$text)
+
+#unnest_tokens to convert to lower case + remove punctuation + add indiv tweet ID
+bhekisisa_sent_stem <- 
+  bhekisisa_sent %>%
+  select(stripped_text) %>%
+  unnest_tokens(word, stripped_text)
+
+#remove stop words
+cleaned_bhekisisa_sent <-  
+  bhekisisa_sent_stem %>%
+  anti_join(stop_words)
+
+#bing sentiment analysis on Bhekisisa tweets
+bing_bhekisisa <- 
+  cleaned_bhekisisa_sent %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort =TRUE)%>%
+  ungroup()
+  
+#Plot
+bing_bhekisisa %>%
+  group_by(sentiment) %>%
+  top_n(10) %>%
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~sentiment, scales = "free_y") +
+  labs(title = "Tweets of Bhekisisa",
+       y = "Contribution to sentiment",
+       x = NULL) +
+  coord_flip() +
+  theme_hc()
+```
+‘virus’, ‘infected’, ‘epidemic’ are among the top five most negative words. ‘break’ and ‘breaks’ are among the other top five words, an indication of the term ‘outbreak’/’outbreaks’ being used frequently. ‘severe’, ‘fever’ and ‘risk’ are among the top ten negative words. ‘protect’, ‘support’ and ‘effective’ are the top four most positive words with ‘free’ being the top ranked positive sentiment word. 
+
+```{r NICDSentiment Analysis, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+#select
+nicd_sent <- 
+  nicd_tweets %>%
+  select("screen_name", "text")
+
+#manual removal of http elements
+nicd_sent$stripped_text <-
+  gsub("http\\S+", "",nicd_sent$text)
+
+#unnest_tokens to convert to lower case + remove punctuation + add indiv tweet ID
+nicd_sent_stem <- 
+  nicd_sent %>%
+  select(stripped_text) %>%
+  unnest_tokens(word, stripped_text)
+
+#remove stop words
+cleaned_nicd_sent <-
+  nicd_sent_stem %>%
+  anti_join(stop_words)
+
+#bing sentiment analysis on NICD tweets
+bing_nicd <- 
+  cleaned_nicd_sent %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort =TRUE)%>%
+  ungroup()
+
+#Plot
+bing_nicd %>%
+  group_by(sentiment) %>%
+  top_n(10) %>%
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  labs(title = "Tweets of NICD",
+       y = "Contribution to sentiment",
+       x = "") +
+  coord_flip()+
+  facet_wrap(~sentiment, scales = "free_y") +
+  theme_hc()
+```
+The top ten negative words in NICD tweets could be categorised as being in relation to the coronavirus. Among these negative words are ‘symptoms’, ‘risk’, ‘virus’, ‘sick’, ‘infection’, ‘illness’ and ‘infections’. The top 10 most positive words are ‘safe’, ‘protective’, ‘protect’, ‘smart’, ‘regard’, ‘loved’, ‘correct’, ‘recovery’, ‘ready’ and ‘encourage’.
+
+```{r Department of Health (@HealthZA) Sentiment Analysis, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+#Select
+healthza_sent <- 
+  healthza_tweets %>%
+  select("screen_name", "text")
+
+#manual removal of http elements
+healthza_sent$stripped_text <-
+  gsub("http\\S+", "",healthza_sent$text)
+
+#unnest_tokens to convert to lower case + remove punctuation + add indiv tweet ID
+healthza_sent_stem <-
+  healthza_sent %>%
+  select(stripped_text) %>%
+  unnest_tokens(word, stripped_text)
+
+#remove stop words
+cleaned_healthza_sent <- 
+  healthza_sent_stem %>%
+  anti_join(stop_words)
+
+#bing sentiment analysis on HealthZA tweets
+bing_healthza <- 
+  cleaned_healthza_sent %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort =TRUE)%>%
+  ungroup()
+  
+#Plot
+bing_healthza %>%
+  group_by(sentiment) %>%
+  top_n(10) %>%
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  labs(title = "Tweets of SA Department of Health",
+       y = "Contribution to sentiment",
+       x = "") +
+  coord_flip()+
+  facet_wrap(~sentiment, scales = "free_y") +
+  theme_hc()
+```
+As with the NICD negative sentiment visualisation, ‘regrettably’ seems to be the word carrying the top negative sentiment within in their tweets. Other words are, ‘risk’, ‘virus’, ‘breakdown’, ‘death’, ‘symptoms’, ‘infections’, ‘isolation’, ‘infection’ and ‘infections’. ‘protect’, ‘recovery’, ‘loved’ are the top three most positive words, followed by ‘positive’, ‘safe’, ‘festive’, ‘support’, ‘patient’, ‘free’ and ‘clean’.
+
+```{r News24 Sentiment Analysis, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+#select
+news24_sent <-
+  news24_tweets %>%
+  select("screen_name", "text")
+
+#removal of http elements
+news24_sent$stripped_text <- 
+  gsub("http\\S+", "",news24_sent$text)
+
+#unnest_tokens to convert to lower case + remove punc + add indiv tweet ID
+news24_sent_stem <- 
+  news24_sent %>%
+  select(stripped_text) %>%
+  unnest_tokens(word, stripped_text)
+
+#remove stop words
+cleaned_news24_sent <-
+  news24_sent_stem %>%
+  anti_join(stop_words)
+
+#bing sentiment analysis on News24 tweets
+bing_news24 <- 
+  cleaned_news24_sent %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort =TRUE)%>%
+  ungroup()
+  
+#Plot
+bing_news24 %>%
+  group_by(sentiment) %>%
+  top_n(10) %>%
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  labs(title = "Tweets of NEWS24 ",
+       y = "Contribution to sentiment",
+       x = "") +
+  coord_flip()+
+  facet_wrap(~sentiment, scales = "free_y") +
+  theme_hc()
+```
+‘infections’, ‘death’ and ‘prison’ are among the top three most negative words. ‘support’, ‘top’ and ‘positive’ are among the top three most positive News24 words. Other than that, there are no other Covid-19 related words. 
+
+```{r Health24 Sentiment Analysis, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+#select
+Health24_sent <- 
+  health24_timeline_df  %>%
+  select("screen_name", "text")
+
+#manual removal of http elements
+Health24_sent$stripped_text <- 
+  gsub("http\\S+", "",Health24_sent$text)
+
+#unnest_tokens to convert to lower case + remove punctuation + add indiv tweet ID
+Health24_sent_stem <- 
+  Health24_sent %>%
+  select(stripped_text) %>%
+  unnest_tokens(word, stripped_text)
+
+#remove stop words
+cleaned_Health24_sent <-
+  Health24_sent_stem %>%
+  anti_join(stop_words)
+
+#bing sentiment analysis on Health24tweets
+bing_Health24 <- 
+  cleaned_Health24_sent %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort =TRUE)%>%
+  ungroup()
+ 
+#Plot 
+bing_Health24 %>%
+  group_by(sentiment) %>%
+  top_n(10) %>%
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  labs(title = "Tweets of Health24 ",
+       y = "Contribution to sentiment",
+       x = "") +
+  coord_flip()+
+  facet_wrap(~sentiment, scales = "free_y") +
+  theme_hc()
+```
+The top negative words from the Health24 twitter handle are ‘risk’, ‘cancer’, ‘symptoms’, ‘loss’, ‘suffer’, ‘lose’, ‘stress’, ‘allergies’, ‘pain’ and ‘infection’. The top positive words from Health24 are ‘fans’, ‘healthy’, ‘win’, ‘benefits’, ‘protect’, ‘boost’, ‘safe’, ‘improve’, ‘top’ and ‘easy’. The great majority of these words are health related. 
+
+
+```{r eNCA Sentiment Analysis, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+#select
+enca_sent <- enca_timeline_df  %>%
+  select("screen_name", "text")
+
+#manual removal of http elements
+enca_sent$stripped_text <- 
+  gsub("http\\S+", "",enca_sent$text)
+
+#unnest_tokens to convert to lower case + remove punctuation + add indiv tweet ID
+enca_sent_stem <- 
+  enca_sent %>%
+  select(stripped_text) %>%
+  unnest_tokens(word, stripped_text)
+
+#remove stop words
+cleaned_enca_sent <-
+  enca_sent_stem %>%
+  anti_join(stop_words)
+
+#bing sentiment analysis on eNCA tweets
+bing_enca <-
+  cleaned_enca_sent %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort =TRUE)%>%
+  ungroup()
+  
+#Plot
+bing_enca %>%
+  group_by(sentiment) %>%
+  top_n(10) %>%
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  labs(title = "Tweets of eNCA",
+       y = "Contribution to sentiment",
+       x = "") +
+  coord_flip()+
+  facet_wrap(~sentiment, scales = "free_y") +
+  theme_hc()
+```
+‘breaking’ is the most negative word within the eNCA tweets. ‘infections’, ‘virus’ and ‘death’ are among the top 10 most negative words. ‘support’ ‘hot’ ‘free’ ‘top’ ‘premier’ ‘ready’ ‘valuable’ ‘led’ ‘dedicated’ and ‘boost’ are the ten most positive words. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+
+#SELECTION OF ALL MEDIA SOURCES WITH SENTIMENT
+Bhek_bing <-
+  tidy_bhekisisa_tweets %>%
+  left_join(get_sentiments("bing")) %>% 
+  count(sentiment) %>% 
+  spread(sentiment, n, fill = 0) %>% 
+  mutate(sentiment = positive - negative) 
+
+nicd_bing <- 
+  tidy_nicd_tweets %>%
+  left_join(get_sentiments("bing")) %>% 
+  count(sentiment) %>% 
+  spread(sentiment, n, fill = 0) %>% 
+  mutate(sentiment = positive - negative)
+
+healthza_bing <-
+  tidy_healthza_tweets %>%
+  left_join(get_sentiments("bing")) %>% 
+  count(sentiment) %>% 
+  spread(sentiment, n, fill = 0) %>% 
+  mutate(sentiment = positive - negative)
+
+ewn_bing <- 
+  tidy_ewnreporter_tweets %>%
+  left_join(get_sentiments("bing")) %>% 
+  count(sentiment) %>% 
+  spread(sentiment, n, fill = 0) %>% 
+  mutate(sentiment = positive - negative) 
+
+news24_bing <-
+  tidy_news24_tweets %>%
+  left_join(get_sentiments("bing")) %>% 
+  count(sentiment) %>% 
+  spread(sentiment, n, fill = 0) %>% 
+  mutate(sentiment = positive - negative) 
+
+GovernmentZA_bing <- 
+  tidy_GovernmentZA_tweets %>%
+  left_join(get_sentiments("bing")) %>% 
+  count(sentiment) %>% 
+  spread(sentiment, n, fill = 0) %>% 
+  mutate(sentiment = positive - negative) 
+
+health24_bing <- 
+  tidy_health24_tweets %>%
+  left_join(get_sentiments("bing")) %>% 
+  count(sentiment) %>% 
+  spread(sentiment, n, fill = 0) %>% 
+  mutate(sentiment = positive - negative) 
+
+SAgovnews_bing <- 
+  tidy_SAgovnews_tweets %>%
+  left_join(get_sentiments("bing")) %>% 
+  count(sentiment) %>% 
+  spread(sentiment, n, fill = 0) %>% 
+  mutate(sentiment = positive - negative) 
+
+sabc_bing <- 
+  tidy_sabc_tweets %>%
+  left_join(get_sentiments("bing")) %>% 
+  count(sentiment) %>% 
+  spread(sentiment, n, fill = 0) %>% 
+  mutate(sentiment = positive - negative)  
+
+enca_bing <- 
+  tidy_enca_tweets %>%
+  left_join(get_sentiments("bing")) %>% 
+  count(sentiment) %>% 
+  spread(sentiment, n, fill = 0) %>% 
+  mutate(sentiment = positive - negative) 
+
+#ADDITION OF ID AND T/F VALUE
+name <- c('Bhekisisa')
+kleur <- c(FALSE)
+Bhek_bing <-cbind(name,Bhek_bing, kleur)
+
+name <- c('NICD')
+kleur <- c(TRUE)
+nicd_bing <-cbind(name,nicd_bing, kleur)
+
+name <- c('HealthZA')
+kleur <- c(TRUE)
+healthza_bing <-cbind(name,healthza_bing, kleur)
+
+name <- c('EWNreporter')
+kleur <- c(FALSE)
+ewn_bing <-cbind(name,ewn_bing, kleur)
+
+name <- c('News24')
+kleur <- c(FALSE)
+news24_bing <-cbind(name,news24_bing, kleur)
+
+name <- c('GovernmentZA')
+kleur <- c(TRUE)
+GovernmentZA_bing <-cbind(name,GovernmentZA_bing, kleur)
+
+name <- c('Health24')
+kleur <- c(FALSE)
+health24_bing <-cbind(name,health24_bing, kleur)
+
+name <- c('SAgovnews')
+kleur <- c(TRUE)
+SAgovnews_bing <-cbind(name,SAgovnews_bing, kleur)
+
+name <- c('SABC')
+kleur <- c(FALSE)
+sabc_bing <-cbind(name,sabc_bing, kleur)
+
+name <- c('eNCA')
+kleur <- c(FALSE)
+enca_bing <-cbind(name,enca_bing, kleur)
+
+
+#Combination of All Media Sources Described Above
+all_bing_df <-
+  bind_rows(Bhek_bing,healthza_bing,nicd_bing,ewn_bing,news24_bing, 
+            GovernmentZA_bing, health24_bing, sabc_bing, enca_bing, SAgovnews_bing)
+
+#Plot
+ggplot(all_bing_df, aes(x = name, y = sentiment, fill = kleur)) +
+  geom_col(position = "identity", size = 0.25) +
+  scale_fill_manual(values = c("#FF5722", "#00ADB5"), 
+                    guide = FALSE) + 
+  theme_hc() +
+  xlab(NULL) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+  labs(title = "Overall Sentiment of each Media Source", caption = "Updated: July 2021")
+```
+A conclusion can be made that government agencies aim to impose emotions of a more tranquil/positive nature, in opposition to private agencies who solely want to invoke an emotion on any sides of the sentiment spectrum, being that outright negative or outright positive. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+media_sent <- 
+  complete_data_source_df %>%
+  select("screen_name", "text")
+
+#manual removal of http elements
+media_sent$stripped_text <- 
+  gsub("http\\S+", "",media_sent$text)
+
+#unnest_tokens to convert to lower case + remove punctuation + add indiv tweet ID
+media_sent_stem <- 
+  media_sent %>%
+  select(stripped_text) %>%
+  unnest_tokens(word, stripped_text)
+
+#remove stop words
+cleaned_media_sent <-  
+  media_sent_stem %>%
+  anti_join(stop_words)
+
+#bing sentiment analysis on tweets
+bing_media <- cleaned_media_sent %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort =TRUE)%>%
+  ungroup()
+  
+#Plot
+bing_media %>%
+  group_by(sentiment) %>%
+  top_n(10) %>%
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~sentiment, scales = "free_y") +
+  labs(title = "Tweets of All Media Sources",
+       y = "Contribution to sentiment",
+       x = NULL, caption = "Updated: July 2021") +
+  coord_flip() +
+  theme_hc()
+
+
+```
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+complete_data_source_df2 <-
+  bhekisisa_tweets %>%
+  full_join(healthza_tweets) %>%
+  full_join(news24_tweets) %>%
+  full_join(nicd_tweets) %>%
+  full_join(enca_timeline_df) %>%
+  full_join(health24_timeline_df)
+
+vaccine_tweets <-
+  dplyr::filter(complete_data_source_df2, grepl('vaccine', text))
+
+vaccine_text <- vaccine_tweets$text
+
+vaccine_corp <- Corpus(VectorSource(vaccine_text))
+
+twitterHandleRemover <- function(x) gsub("@\\S+","", x)
+
+hashtagRemover <- function(x) gsub("#\\S+","", x)
+
+emojiRemover <- function(x) gsub("[^\x01-\x74F]","",x)
+
+toSpace = content_transformer(function(x,pattern)gsub(pattern,"",x))
+
+cleaner <- function(vaccine_corp)
+  {
+  vaccine_corp <- 
+  tm_map(vaccine_corp, toSpace,
+         "?(f|ht)tp(s?)://(.*)[.][a-z]+")
+  
+  vaccine_corp <- 
+    tm_map(vaccine_corp,
+                         content_transformer(twitterHandleRemover))
+  
+  vaccine_corp <- 
+    tm_map(vaccine_corp,
+                         content_transformer(hashtagRemover))
+  
+  vaccine_corp <- 
+    tm_map(vaccine_corp, removePunctuation)
+  
+  vaccine_corp <- 
+    tm_map(vaccine_corp, emojiRemover)
+  
+  vaccine_corp <- 
+    tm_map(vaccine_corp, stemDocument)
+  
+  vaccine_corp <-
+    tm_map(vaccine_corp, content_transformer(tolower))
+  return(vaccine_corp)
+}
+vaccine_corp <- 
+  cleaner(vaccine_corp)
+
+new_vaccinedf <- 
+  data.frame(text = sapply(vaccine_corp, as.character),
+             stringsAsFactors = FALSE)
+
+new_vaccinedf <-
+  unlist(new_vaccinedf)
+
+
+pattern = "^[[:space:]]*$"
+
+vaccine_df <-
+  new_vaccinedf[grep(pattern, new_vaccinedf, invert = TRUE)]
+
+#sentiment analysis
+
+sentiments_df <- 
+  sentiment_attributes(vaccine_df)
+
+new_2 <- 
+  get_sentences(vaccine_df)
+
+tweet_sentiment<-
+  sentiment_by(new_2, averaging.function = average_weighted_mixed_sentiment)
+
+#visualization of sentiments
+# Make the graph
+vaccine_sent_graph = plot_ly(x=tweet_sentiment$word_count,y=tweet_sentiment$ave_sentiment,mode="markers",colors =c("#FF5722","#00ADB5"),size=abs(tweet_sentiment$ave_sentiment)/3 , color=ifelse(tweet_sentiment$ave_sentiment>0,"Positive","Negative") ) %>% 
+#Change hover mode in the layout argument 
+layout( hovermode="closest",title="Sentiment analysis by Tweet",xaxis= list(title = "Number of words per Tweet",size=18),yaxis = list(title = "Sentiments by Tweet",size=18))
+# show the graph
+vaccine_sent_graph
+```
+
+## Comparison Cloud of the Sentiment of Selected Media Sources
+
+```{r Sentiment_Analysis_Comparison_Cloud, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+# Comparison Cloud of the Sentiment of Selected Media Sources
+
+tidy_all_media_tweets %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  acast(word ~ sentiment, value.var = "n", fill = 0) %>%
+  comparison.cloud(colors = c("#FF5722", "#00ADB5"),
+                   max.words = 100, scale = c(4, 0.5))
+```
+The most significant words potrayed by this analysis is 'safe', 'infections', 'work' and 'recovery' which can all be related to the Covid -19 epidemic.
+
+### How they difffer:
+
+#### Over Time:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+
+# Plot all twitter activity in weekly intervals
+
+ts_plot(joint_timelines, "weeks", color = "#00ADB5", size = 1) +
+  theme_hc() +
+  labs(title = "Time Series Showing All Twitter Activity of Chosen Media") +
+  xlab("Week") +
+  ylab("Tweet Frequency")
+
+```
+
+Time series showing all Twitter activity of chosen media indicates that the is a stark increase in Twitter activity in 2021.There seems to be a strong increase in tweets at the beginning of 2020 and 2021. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+
+# Group by is_retweet and plot multiple time series of retweets vs non-retweets
+
+joint_timelines %>%
+  dplyr::group_by(is_retweet) %>%
+  ts_plot("hours", color = "#00ADB5", size = 1) +
+  theme_hc() +
+  labs(title = "Time Series: Retweets vs Non-retweets") +
+  ylab("Tweet Frequency") +
+  xlab("Hours")
+
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+
+# Group by screen_name and plot each media source's time series
+
+ts_plot(dplyr::group_by(joint_timelines, screen_name), 
+        "weeks", size = 1) +
+  theme_hc() +
+  labs(title = "Time Series of Tweets from Individual Media Sources",
+       caption = "Updated: July 2021") +
+  xlab("Week") +
+  ylab("Tweet Frequency")
+
+```
+
+Time series of tweets from individual media sources indicates that there was a stark increase in Twitter activity in June and July of 2021.The most active of these media Twitter accounts is News24. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+
+# Group by screen_name and is_retweet, then plot individual time series
+
+joint_timelines %>%
+  dplyr::group_by(screen_name, is_retweet) %>%
+  ts_plot("months", size = 1) +
+  ylab("Tweet Frequency") +
+  xlab("Months") + 
+  theme_hc() +
+  labs(title = "Time Series of Tweets from Individual Media Sources and if they are Retweets", 
+       caption = "Updated: July 2021")
+
+```
+
+Time series of tweets from individual media sources, which indicates that there are very few retweets by these individual sources.
+
+```{r Vaccine_Sentiment_Analysis, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+# VACCINE SENTIMENT ANALYSIS 
+
+#Convert created_at column into Date and Time of Bhekisisa
+bhekisisa_tweets$Date <- as.Date(bhekisisa_tweets$created_at)
+bhekisisa_tweets$Time <- format(bhekisisa_tweets$created_at,"%H:%M:%S")
+#select timeframe
+bhek_vac <- bhekisisa_tweets[bhekisisa_tweets$Date >= "2021-04-14" & bhekisisa_tweets$Date <= "2021-05-31",]
+bhek_vac1 <- bhekisisa_tweets[bhekisisa_tweets$Date >= "2021-06-01" & bhekisisa_tweets$Date <= "2021-07-08",]
+
+#Convert created_at column into Date and Time of Health24
+health24_timeline_df$Date <- as.Date(health24_timeline_df$created_at)
+health24_timeline_df$Time <- format(health24_timeline_df$created_at,"%H:%M:%S")
+#select timeframe
+health24_vac <- health24_timeline_df[health24_timeline_df$Date >= "2021-04-14" & health24_timeline_df$Date <= "2021-05-31",]
+health24_vac1 <- health24_timeline_df[health24_timeline_df$Date >= "2021-06-01" & health24_timeline_df$Date <= "2021-07-08",]
+
+
+#Convert created_at column into Date and Time of NICD
+nicd_tweets$Date <- as.Date(nicd_tweets$created_at)
+nicd_tweets$Time <- format(nicd_tweets$created_at,"%H:%M:%S")
+#select timeframe
+nicd_vac <-nicd_tweets[nicd_tweets$Date >= "2021-04-14" & nicd_tweets$Date <= "2021-05-31",]
+nicd_vac1 <-nicd_tweets[nicd_tweets$Date >= "2021-06-01" & nicd_tweets$Date <= "2021-07-08",]
+
+
+#Convert created_at column into Date and Time of eNCA
+enca_timeline_df$Date <- as.Date(enca_timeline_df$created_at)
+enca_timeline_df$Time <- format(enca_timeline_df$created_at,"%H:%M:%S")
+#select timeframe
+enca_vac <- enca_timeline_df[enca_timeline_df$Date >= "2021-04-14" & enca_timeline_df$Date <= "2021-05-31",]
+enca_vac1 <- enca_timeline_df[enca_timeline_df$Date >= "2021-06-01" & enca_timeline_df$Date <= "2021-07-08",]
+
+
+#Convert created_at column into Date and Time of HealthZA 
+healthza_tweets$Date <- as.Date(healthza_tweets$created_at)
+healthza_tweets$Time <- format(healthza_tweets$created_at,"%H:%M:%S")
+#select timeframe
+healthza_vac <- healthza_tweets[healthza_tweets$Date >= "2021-04-14" & healthza_tweets$Date <= "2021-05-31",]
+healthza_vac1 <- healthza_tweets[healthza_tweets$Date >= "2021-06-01" & healthza_tweets$Date <= "2021-07-08",]
+
+
+#Convert created_at column into Date and Time of News24
+news24_tweets$Date <- as.Date(news24_tweets$created_at)
+news24_tweets$Time <- format(news24_tweets$created_at,"%H:%M:%S")
+#select timeframe
+news24_vac <- news24_tweets[news24_tweets$Date >= "2021-04-14" & news24_tweets$Date <= "2021-05-31",]
+news24_vac1 <- news24_tweets[news24_tweets$Date >= "2021-06-01" & news24_tweets$Date <= "2021-07-08",]
+
+
+#combined df from 04-14 to 05-31
+complete_vac_df1 <-
+  bhek_vac %>%
+  full_join(healthza_vac) %>%
+  full_join(news24_vac) %>%
+  full_join(nicd_vac) %>%
+  full_join(enca_vac) %>%
+  full_join(health24_vac) 
+
+#search all tweets containing 'vaccine'
+complete_vac_df1 <- 
+  dplyr::filter(complete_vac_df1, grepl('vaccine', text)) %>%
+  select("screen_name", "text") 
+  
+complete_vac_df1$stripped_text <- 
+  gsub("http\\S+", "",complete_vac_df1$text)
+
+complete_sent_df1 <- 
+  complete_vac_df1 %>%
+  select(stripped_text) %>%
+  unnest_tokens(word, stripped_text)
+
+complete_sent_df1 %>%
+  anti_join(stop_words)
+
+#bing sentiment analysis on complete_vac_df1 tweets
+complete_sent_df1 <- complete_sent_df1 %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort =TRUE)%>%
+  count(sentiment)%>%
+  spread(sentiment, n, fill = 0) %>% 
+  mutate(sentiment = positive - negative) 
+
+
+name <- c('14 April- 31 May 2021')
+kleur <- c(FALSE)
+
+complete_sent_df1 <-
+  cbind(name,complete_sent_df1, kleur)
+
+#combined df from 06-01 to 07-08
+complete_vac_df2 <-
+  bhek_vac1 %>%
+  full_join(healthza_vac1) %>%
+  full_join(news24_vac1) %>%
+  full_join(nicd_vac1) %>%
+  full_join(enca_vac1) %>%
+  full_join(health24_vac1)
+
+#search all tweets containing 'vaccine'
+
+complete_vac_df2 <- 
+  dplyr::filter(complete_vac_df2, grepl('vaccine', text)) %>%
+  select("screen_name", "text") 
+  
+complete_vac_df2$stripped_text <-
+  gsub("http\\S+", "",complete_vac_df2$text)
+
+complete_sent_df2 <- complete_vac_df2 %>%
+  select(stripped_text) %>%
+  unnest_tokens(word, stripped_text)
+
+complete_sent_df2 %>%
+  anti_join(stop_words)
+
+#bing sentiment analysis on complete_vac_df1 tweets
+complete_sent_df2 <- 
+  complete_sent_df2 %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort =TRUE)%>%
+  count(sentiment)%>%
+  spread(sentiment, n, fill = 0) %>% 
+  mutate(sentiment = positive - negative)
+
+
+name <- c('1 June- 8 July 2021')
+kleur <- c(FALSE)
+complete_sent_df2 <-
+  cbind(name,complete_sent_df2, kleur)
+
+#bind both sentiment dfs
+complete_df <-
+  bind_rows(complete_sent_df2, complete_sent_df1)
+  
+#plot both sentiment df on one plot, 
+ggplot(complete_df, aes(x = sort(name, decreasing = T), y = sentiment, fill = kleur)) +
+  geom_col(position = "identity", size = 0.25) +
+  scale_fill_manual(values = c("#00ADB5"), guide = FALSE)+
+  theme_hc()+
+  labs(title = "Tweets containing 'vaccine'",
+       y = "Contribution to sentiment",
+       x = NULL, subtitle = "From 14 April to 8 July 2021 ") 
+
+```
+The above visualisation takes tweets containing the term 'vaccine' and measures its' frequency from 1 June to 31 May 2021. To emphasise the difference in sentiment, this timeline was split in two chunks, one being '1 June- 8 July 2021' and the other '14 April- 31 May 2021'. One can see a significant increase in negative sentiment onto the second timeline sentiment. 
+
+
+
+# Additional Requirements:
+
+#### By Media Source:
+
+```{r Covid19_Vaccine_Data_Comparison_With_Tweets, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+
+# Converting and formatting dates
+
+vaccine_tweets$Date <- 
+  as.Date(vaccine_tweets$created_at)
+
+vaccine_tweets$Time <- 
+  format(vaccine_tweets$created_at,"%H:%M:%S")
+
+vaccinations$Date <- 
+  as.Date(vaccinations$date)
+
+# Un-nesting tokens of tweets
+
+tidy_vaccine_tweets <- 
+  vaccine_tweets %>%
+    select(created_at,text) %>%
+    unnest_tokens("word", text)
+
+# Cleaning and filtering for vaccine words
+
+vaccine_words <- 
+  vaccine_tweets %>%
+  mutate(text = str_remove_all(text, "&amp;|&lt;|&gt;"),
+  text = str_remove_all(text, "\\s?(f|ht)(tp)(s?)(://)([^\\.])[\\.|/](\\S)"),
+  text = str_remove_all(text, "[^\x01-\x7F]")) %>% 
+  unnest_tokens(word, text, token = "tweets") %>%
+  filter(!word %in% stop_words$word,
+  !word %in% str_remove_all(stop_words$word, "'"),
+  str_detect(word, "[a-z]"),
+  !str_detect(word, "^#"), 
+  !str_detect(word, "@\\S+")) %>%
+  count(word, sort = TRUE)
+
+# Plot the frequency of vaccine tweets over time
+
+ts_plot(vaccine_tweets) +
+  ggtitle("Line Graph showing the frequency of vaccine tweets over time")
+
+```
+
+Time series line graph showing the the frequency of vaccine tweets over time indicates the frequency of  tweets pertaining to vaccinations in South Africa is sharply increasing.
+
+```{r Daily_Vac_Plot, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+
+# Plot Line Graph graph Showing Daily Vaccinations Over Time
+
+ggplot(vaccinations, 
+       aes(x = round_date
+           (parse_date_time
+             (date, "Y%/m%/d%"),
+             unit = "day"), 
+           y = vaccinated_daily)) +
+  geom_line(stat = "identity",
+            color = "red", 
+            size = 1) +
+  xlab("Date") +
+  ylab("Daily Vaccinations") +
+  ggtitle("Line Graph graph Showing Daily Vaccinations Over Time")
+
+```
+
+Line graph showing the daily vaccinations over time sharply increasing as more people are permitted to be vaccinated. 
+
+```{r Total_Vac_plot, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, results='hide'}
+
+# Plot line graph showing total vaccinations over time
+
+ggplot() +
+  geom_line(vaccinations,
+            mapping = aes(x = round_date
+                (parse_date_time
+                  (date, "Y%/m%/d%"),
+                  unit = "day"),
+                y = vaccinated_total),
+            stat = "identity",
+            color = "red",
+            size = 1) +
+  xlab("Date") +
+  ylab("Total Vaccinations") +
+  coord_cartesian(ylim = c(0,5000000)) +
+  ggtitle("Line Graph graph Showing Total Vaccinations Over Time")
+```
+
+The line graph showing the total vaccinations shows steep increases whenever new age groups are permitted to be vaccinated. 
+
+When taking all three charts into account it can be surmised that there is a correlation when observing the more age groups are permitted to be vaccinated in South Africa,the more tweets pertaining to vaccines are made.
+
+# Report Summary:
+
+The visualisations drawn from the text analysis methods used in this report display certain common characteristics from which certain conclusions can be documented. There seems to be a difference in how selected media sources present information regarding COVID-19 and its underlying branches, such as deaths, vaccinations, and tests. Also, the pertaining sentiment and topics of these subjects.
+
+Vaccinations seem to be reflecting an increasingly negative connotation from its initial spike in use within the tweets of all ten media sources. The occurrence of increasing national vaccinations grow parallel with that of ‘vaccine’ being mentioned in tweets. As described, the increase of vaccinations in younger age groups are also reflecting on ‘vaccine’ increasingly occurring in tweets from these sources.
+
+Contrary to our belief, ‘tests’ or ‘testing’ was not as popular as expected, as it was a major subject matter in the initial rise of COVID -19, back in 2020. ‘covid’ is mentioned within every top 10 words or hashtags of all ten used media sources. Indicating that it still is and has been a very popular term used over a number of months. ‘virus’, ‘infection’ and ‘death’ seem to be the most heavily negative words used in the tweets by the chosen media sources, which are COVID-related. Among other top ten negative words are ‘symptoms’ and ‘risk’. Differences in sentiment between private and government sources should be noted. 
+
+In summation, with regards to the topic modelling section, we were able to determine the highest TF-IDF (Term Frequency-Inverse Document Frequency) words in the six selected media sources, the highest word probabilities for each topic, the top ten media topics according to the beta matrix at topic level 1, as well as the distribution of word probabilities for each topic. ‘covid’ has a notable presence within all these analysis methods. 
+
+In regard to the text networks, we were able to identify two clusters or communities within the author-based projection text network and six clusters or communities within the word-based projection text network. From these text networks we were able to derive insight from which word or media sources have a strong similarity with each other.
+
+# Retrospective:
+
+Looking back there are a few points the project group would like to have changed. Firstly, aesthetic enhancements for graph visualizations such as numeric values on top of bar chart bins and better tabular visualizations. Secondly, a greater use of the ```Vader``` and ```sentimentR``` packages. Thirdly, more external COVID-19 data that could be  collated with Twitter data. Finally, combining the Twitter time series plots with lockdown level and infection wave overlays.
